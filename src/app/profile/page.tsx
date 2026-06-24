@@ -17,7 +17,6 @@ export default async function ProfilePage() {
       activeItem="profile"
       title="个人资料"
       description="管理你的昵称与账户信息"
-      theme="dark"
     >
       <ProfilePanel
         username={displayName}

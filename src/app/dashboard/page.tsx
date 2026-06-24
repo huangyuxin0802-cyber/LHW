@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { DashboardLayout, getDashboardUser } from "@/components/DashboardLayout";
+import { ui } from "@/lib/ui";
 
 export default async function DashboardPage() {
   const { displayName, email, profile } = await getDashboardUser();
@@ -17,40 +19,50 @@ export default async function DashboardPage() {
       title={`你好，${displayName}`}
       description="欢迎回来，这是你的个人空间。"
     >
-      <section className="rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-        <p className="text-[13px] font-medium uppercase tracking-[0.2em] text-[#86868b]">
-          Welcome
-        </p>
-        <h2 className="mt-2 text-[32px] font-semibold tracking-tight text-[#1d1d1f]">
-          账户概览
+      <section className={ui.card}>
+        <div aria-hidden className={ui.pageGlow} />
+        <p className={ui.eyebrow}>Overview</p>
+        <h2 className={`mt-2 ${ui.titleLg}`}>
+          账户<span className={ui.titleAccent}>概览</span>
         </h2>
+        <p className={`mt-3 max-w-lg ${ui.subtitle}`}>
+          快速查看你的账户信息，或前往个人资料修改昵称。
+        </p>
 
-        <dl className="mt-8 grid gap-5 sm:grid-cols-3">
-          <div className="rounded-2xl bg-[#f5f5f7] p-5">
-            <dt className="text-[13px] font-medium text-[#86868b]">
-              {profile ? "用户名" : "显示名"}
-            </dt>
-            <dd className="mt-2 text-[21px] font-medium text-[#1d1d1f]">
+        <dl className="relative mt-8 grid gap-4 sm:grid-cols-3">
+          <div className={ui.cardSm}>
+            <dt className={ui.label}>昵称</dt>
+            <dd className="mt-2 text-[21px] font-medium text-zinc-100">
               {displayName}
             </dd>
           </div>
           {email && (
-            <div className="rounded-2xl bg-[#f5f5f7] p-5">
-              <dt className="text-[13px] font-medium text-[#86868b]">邮箱</dt>
-              <dd className="mt-2 break-all text-[17px] font-medium text-[#1d1d1f]">
+            <div className={ui.cardSm}>
+              <dt className={ui.label}>邮箱</dt>
+              <dd className="mt-2 break-all text-[17px] font-medium text-zinc-100">
                 {email}
               </dd>
             </div>
           )}
-          <div className="rounded-2xl bg-[#f5f5f7] p-5">
-            <dt className="text-[13px] font-medium text-[#86868b]">
-              注册时间
-            </dt>
-            <dd className="mt-2 text-[17px] font-medium text-[#1d1d1f]">
+          <div className={ui.cardSm}>
+            <dt className={ui.label}>注册时间</dt>
+            <dd className="mt-2 text-[17px] font-medium text-zinc-100">
               {joinedDate ?? "—"}
             </dd>
           </div>
         </dl>
+
+        <div className="relative mt-8 flex flex-wrap gap-3">
+          <Link href="/profile" className={ui.btnPrimary}>
+            编辑个人资料
+          </Link>
+          <Link href="/notes" className={ui.btnSecondary}>
+            打开笔记
+          </Link>
+          <Link href="/friends" className={ui.btnSecondary}>
+            好友与聊天
+          </Link>
+        </div>
       </section>
     </DashboardLayout>
   );

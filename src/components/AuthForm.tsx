@@ -8,6 +8,7 @@ import {
   resendConfirmationAction,
   type AuthActionState,
 } from "@/app/actions/auth";
+import { ui } from "@/lib/ui";
 
 const initialState: AuthActionState = {};
 
@@ -19,7 +20,7 @@ type AuthFormProps = {
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-[13px] text-[#ff3b30]">{message}</p>;
+  return <p className="mt-1.5 text-[13px] text-red-400">{message}</p>;
 }
 
 export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
@@ -38,25 +39,29 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
   return (
     <div className="w-full max-w-[400px]">
       <div className="mb-10 text-center">
-        <p className="text-[13px] font-medium uppercase tracking-[0.2em] text-[#86868b]">
-          LHW
-        </p>
-        <h1 className="mt-3 text-[32px] font-semibold tracking-tight text-[#1d1d1f]">
-          {isLogin ? "登录" : "创建账户"}
+        <p className={ui.eyebrow}>LHW</p>
+        <h1 className={`mt-3 ${ui.titleLg}`}>
+          {isLogin ? (
+            <>
+              <span className="font-extralight">登录</span>
+            </>
+          ) : (
+            <>
+              <span className="font-extralight">创建</span>
+              <span className={ui.titleAccent}>账户</span>
+            </>
+          )}
         </h1>
-        <p className="mt-2 text-[17px] leading-relaxed text-[#86868b]">
+        <p className={`mt-2 text-[17px] ${ui.subtitle}`}>
           {isLogin ? "使用邮箱登录你的账户" : "注册后将发送验证邮件"}
         </p>
       </div>
 
-      <div className="rounded-[20px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)]">
+      <div className={ui.card}>
         <form action={formAction} className="space-y-5" noValidate>
           {!isLogin && (
             <div>
-              <label
-                htmlFor="username"
-                className="mb-2 block text-[13px] font-medium text-[#86868b]"
-              >
+              <label htmlFor="username" className={`mb-2 block ${ui.label}`}>
                 用户名
               </label>
               <input
@@ -64,7 +69,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
                 name="username"
                 type="text"
                 autoComplete="username"
-                className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+                className={ui.input}
                 placeholder="your_name"
               />
               <FieldError message={state.fieldErrors?.username} />
@@ -72,10 +77,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
           )}
 
           <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-[13px] font-medium text-[#86868b]"
-            >
+            <label htmlFor="email" className={`mb-2 block ${ui.label}`}>
               邮箱
             </label>
             <input
@@ -84,17 +86,14 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
               type="email"
               autoComplete="email"
               defaultValue={pendingEmail}
-              className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+              className={ui.input}
               placeholder="name@example.com"
             />
             <FieldError message={state.fieldErrors?.email} />
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-[13px] font-medium text-[#86868b]"
-            >
+            <label htmlFor="password" className={`mb-2 block ${ui.label}`}>
               密码
             </label>
             <input
@@ -102,7 +101,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
               name="password"
               type="password"
               autoComplete={isLogin ? "current-password" : "new-password"}
-              className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+              className={ui.input}
               placeholder={isLogin ? "输入密码" : "至少 8 位，含字母和数字"}
             />
             <FieldError message={state.fieldErrors?.password} />
@@ -112,7 +111,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
 
           {displayError && (
             <div
-              className="rounded-xl bg-[#fff2f1] px-4 py-3 text-[15px] text-[#ff3b30]"
+              className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[15px] text-red-400"
               role="alert"
             >
               {typeof displayError === "string"
@@ -123,7 +122,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
 
           {displaySuccess && (
             <div
-              className="rounded-xl bg-[#f0faf0] px-4 py-3 text-[15px] leading-relaxed text-[#248a3d]"
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[15px] leading-relaxed text-emerald-400"
               role="status"
             >
               {displaySuccess}
@@ -133,7 +132,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full rounded-full bg-[#0071e3] px-4 py-3.5 text-[17px] font-medium text-white transition hover:bg-[#0077ed] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`w-full ${ui.btnPrimary} !py-3.5 !text-[17px]`}
           >
             {isPending ? "请稍候…" : isLogin ? "登录" : "注册"}
           </button>
@@ -145,7 +144,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
             <button
               type="submit"
               disabled={isResending}
-              className="w-full text-center text-[15px] text-[#0071e3] transition hover:text-[#0077ed] disabled:opacity-50"
+              className="w-full text-center text-[15px] text-zinc-300 transition hover:text-white disabled:opacity-50"
             >
               {isResending ? "发送中…" : "没收到？重新发送验证邮件"}
             </button>
@@ -153,11 +152,11 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
         )}
       </div>
 
-      <p className="mt-8 text-center text-[15px] text-[#86868b]">
+      <p className={`mt-8 text-center ${ui.subtitle}`}>
         {isLogin ? "还没有账户？" : "已有账户？"}{" "}
         <Link
           href={isLogin ? "/register" : "/login"}
-          className="font-medium text-[#0071e3] hover:text-[#0077ed]"
+          className="font-medium text-white hover:text-zinc-200"
         >
           {isLogin ? "注册" : "登录"}
         </Link>

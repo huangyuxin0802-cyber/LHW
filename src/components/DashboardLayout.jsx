@@ -36,17 +36,12 @@ export async function getDashboardUser(next = "/dashboard") {
   };
 }
 
-export function DashboardLogoutButton({ theme = "light" }) {
-  const isDark = theme === "dark";
+export function DashboardLogoutButton() {
   return (
     <form action={logoutAction}>
       <button
         type="submit"
-        className={`w-full rounded-full px-4 py-2 text-[14px] font-medium transition ${
-          isDark
-            ? "text-zinc-300 hover:bg-white/10 hover:text-white"
-            : "text-[#0071e3] hover:bg-[#0071e3]/10"
-        }`}
+        className="w-full rounded-full px-4 py-2 text-[14px] font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white"
       >
         退出登录
       </button>
@@ -59,21 +54,18 @@ export async function DashboardLayout({
   title,
   description,
   children,
-  theme = "light",
 }) {
   const { displayName, email, userId } = await getDashboardUser();
-  const isDark = theme === "dark";
 
   return (
     <MessageNotificationProvider userId={userId}>
-      <div className={`flex min-h-screen ${isDark ? "bg-zinc-950" : ""}`}>
+      <div className="flex min-h-screen bg-zinc-950">
         <Sidebar
           activeItem={activeItem}
           user={{ name: displayName, email }}
-          footer={<DashboardLogoutButton theme={theme} />}
-          theme={theme}
+          footer={<DashboardLogoutButton />}
         />
-        <Main title={title} description={description} theme={theme}>
+        <Main title={title} description={description}>
           {children}
         </Main>
       </div>

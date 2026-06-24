@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessageAction } from "@/app/actions/messages";
 import NicknameEditor from "@/components/NicknameEditor";
+import { ui } from "@/lib/ui";
 
 const initialState = {};
 
@@ -88,17 +89,17 @@ export default function ChatRoom({
   }, [currentUserId, friendId]);
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] flex-col rounded-[24px] bg-white shadow-[0_2px_24px_rgba(0,0,0,0.06)]">
-      <div className="border-b border-black/[0.06] px-6 py-4">
-        <h2 className="text-[20px] font-semibold text-[#1d1d1f]">
+    <div className={`flex h-[calc(100vh-12rem)] flex-col ${ui.card} !p-0`}>
+      <div className="border-b border-white/[0.06] px-6 py-4">
+        <h2 className="text-[20px] font-semibold text-white">
           与 {friendName} 的对话
         </h2>
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-[#f5f5f7] px-4 py-3">
-          <span className="text-[13px] font-medium text-[#86868b]">我的昵称</span>
+        <div className={`mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 ${ui.cardInner}`}>
+          <span className={ui.label}>我的昵称</span>
           <NicknameEditor
             initialUsername={myName}
             onUpdated={setMyName}
-            variant="light"
+            variant="dark"
             compact
           />
         </div>
@@ -106,7 +107,7 @@ export default function ChatRoom({
 
       <div className="flex-1 space-y-3 overflow-y-auto px-6 py-4">
         {messages.length === 0 ? (
-          <p className="text-center text-[15px] text-[#86868b]">
+          <p className={`text-center ${ui.subtitle}`}>
             还没有消息，发送第一条吧
           </p>
         ) : (
@@ -120,8 +121,8 @@ export default function ChatRoom({
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                     isMine
-                      ? "bg-[#0071e3] text-white"
-                      : "bg-[#f5f5f7] text-[#1d1d1f]"
+                      ? "bg-white text-zinc-950"
+                      : "border border-white/[0.08] bg-white/[0.06] text-zinc-100"
                   }`}
                 >
                   <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
@@ -129,7 +130,7 @@ export default function ChatRoom({
                   </p>
                   <p
                     className={`mt-1 text-[11px] ${
-                      isMine ? "text-white/70" : "text-[#86868b]"
+                      isMine ? "text-zinc-500" : "text-zinc-500"
                     }`}
                   >
                     {formatTime(msg.created_at)}
@@ -144,7 +145,7 @@ export default function ChatRoom({
 
       <form
         action={formAction}
-        className="flex gap-3 border-t border-black/[0.06] px-6 py-4"
+        className="flex gap-3 border-t border-white/[0.06] px-6 py-4"
       >
         <input type="hidden" name="recipientId" value={friendId} />
         <input
@@ -152,18 +153,18 @@ export default function ChatRoom({
           type="text"
           placeholder="输入消息…"
           autoComplete="off"
-          className="flex-1 rounded-full bg-[#f5f5f7] px-4 py-3 text-[15px] outline-none focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+          className={ui.inputSm}
         />
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-full bg-[#0071e3] px-5 py-3 text-[15px] font-medium text-white hover:bg-[#0077ed] disabled:opacity-50"
+          className={`${ui.btnPrimary} !rounded-full !px-5 !py-3`}
         >
           发送
         </button>
       </form>
       {state.error && (
-        <p className="px-6 pb-4 text-[14px] text-[#ff3b30]">{state.error}</p>
+        <p className={`px-6 pb-4 ${ui.error}`}>{state.error}</p>
       )}
     </div>
   );

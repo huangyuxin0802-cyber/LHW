@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardLayout, getDashboardUser } from "@/components/DashboardLayout";
 import ChatRoom from "@/components/ChatRoom";
 import Link from "next/link";
+import { ui } from "@/lib/ui";
 import { notFound, redirect } from "next/navigation";
 
 type ChatPageProps = {
@@ -52,7 +53,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
     >
       <Link
         href="/friends"
-        className="mb-4 inline-block text-[15px] text-[#0071e3] hover:underline"
+        className={`mb-4 inline-block ${ui.link}`}
       >
         ← 返回好友列表
       </Link>

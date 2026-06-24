@@ -19,7 +19,7 @@ type NicknameEditorProps = {
 export default function NicknameEditor({
   initialUsername,
   onUpdated,
-  variant = "light",
+  variant = "dark",
   compact = false,
 }: NicknameEditorProps) {
   const [editing, setEditing] = useState(false);

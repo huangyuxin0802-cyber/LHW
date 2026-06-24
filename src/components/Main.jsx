@@ -1,48 +1,25 @@
-export default function Main({ title, description, children, theme = "light" }) {
-  const isDark = theme === "dark";
-
+export default function Main({ title, description, children }) {
   return (
-    <main
-      className={`flex min-h-full flex-1 flex-col overflow-y-auto ${
-        isDark ? "bg-zinc-950" : "bg-[#f5f5f7]"
-      }`}
-    >
+    <main className="relative flex min-h-full flex-1 flex-col overflow-y-auto bg-zinc-950">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-white/[0.02] blur-3xl"
+      />
+
       {(title || description) && (
-        <header
-          className={`px-8 py-6 backdrop-blur-xl ${
-            isDark
-              ? "border-b border-white/[0.06] bg-zinc-950/80"
-              : "border-b border-black/[0.06] bg-[#f5f5f7]/80"
-          }`}
-        >
+        <header className="relative border-b border-white/[0.06] bg-zinc-950/80 px-8 py-6 backdrop-blur-xl">
           {title && (
-            <h1
-              className={`text-[28px] font-semibold tracking-tight ${
-                isDark ? "font-extralight text-white" : "text-[#1d1d1f]"
-              }`}
-            >
-              {isDark ? (
-                <>
-                  <span className="font-extralight">{title}</span>
-                </>
-              ) : (
-                title
-              )}
+            <h1 className="text-[28px] font-extralight tracking-tight text-white">
+              {title}
             </h1>
           )}
           {description && (
-            <p
-              className={`mt-1 text-[15px] ${
-                isDark ? "text-zinc-400" : "text-[#86868b]"
-              }`}
-            >
-              {description}
-            </p>
+            <p className="mt-1 text-[15px] text-zinc-400">{description}</p>
           )}
         </header>
       )}
 
-      <div className="flex-1 px-8 py-8">{children}</div>
+      <div className="relative flex-1 px-8 py-8">{children}</div>
     </main>
   );
 }

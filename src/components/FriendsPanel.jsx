@@ -8,6 +8,7 @@ import {
   rejectFriendFormAction,
   removeFriendFormAction,
 } from "@/app/actions/friends";
+import { ui } from "@/lib/ui";
 
 const initialState = {};
 
@@ -39,73 +40,55 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-        <h2 className="text-[24px] font-semibold tracking-tight text-[#1d1d1f]">
-          添加好友
-        </h2>
-        <p className="mt-1 text-[15px] text-[#86868b]">
-          输入对方注册时使用的邮箱
-        </p>
+      <section className={ui.card}>
+        <h2 className={ui.title}>添加好友</h2>
+        <p className={ui.subtitle}>输入对方注册时使用的邮箱</p>
 
         <form action={formAction} className="mt-6 flex flex-col gap-3 sm:flex-row">
           <input
             name="email"
             type="email"
             placeholder="friend@example.com"
-            className="flex-1 rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] outline-none focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+            className={ui.input}
           />
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-full bg-[#0071e3] px-6 py-3 text-[15px] font-medium text-white hover:bg-[#0077ed] disabled:opacity-50"
+            className={`${ui.btnPrimary} shrink-0`}
           >
             {isPending ? "发送中…" : "添加"}
           </button>
         </form>
 
-        {state.error && (
-          <p className="mt-3 text-[15px] text-[#ff3b30]">{state.error}</p>
-        )}
-        {state.success && (
-          <p className="mt-3 text-[15px] text-[#248a3d]">{state.success}</p>
-        )}
+        {state.error && <p className={`mt-3 ${ui.error}`}>{state.error}</p>}
+        {state.success && <p className={`mt-3 ${ui.success}`}>{state.success}</p>}
       </section>
 
       {incoming.length > 0 && (
-        <section className="rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-          <h2 className="text-[20px] font-semibold text-[#1d1d1f]">
-            收到的好友请求
-          </h2>
+        <section className={ui.card}>
+          <h2 className="text-[20px] font-semibold text-white">收到的好友请求</h2>
           <ul className="mt-4 space-y-3">
             {incoming.map((req) => (
               <li
                 key={req.id}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-[#f5f5f7] p-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
               >
                 <div>
-                  <p className="font-medium text-[#1d1d1f]">
+                  <p className="font-medium text-zinc-100">
                     {displayLabel(req.profile, req.requesterId)}
                   </p>
-                  <p className="text-[13px] text-[#86868b]">
-                    {formatTime(req.created_at)}
-                  </p>
+                  <p className={ui.label}>{formatTime(req.created_at)}</p>
                 </div>
                 <div className="flex gap-2">
                   <form action={acceptFriendFormAction}>
                     <input type="hidden" name="friendshipId" value={req.id} />
-                    <button
-                      type="submit"
-                      className="rounded-full bg-[#0071e3] px-4 py-1.5 text-[13px] font-medium text-white"
-                    >
+                    <button type="submit" className={ui.btnPrimarySm}>
                       接受
                     </button>
                   </form>
                   <form action={rejectFriendFormAction}>
                     <input type="hidden" name="friendshipId" value={req.id} />
-                    <button
-                      type="submit"
-                      className="rounded-full px-4 py-1.5 text-[13px] font-medium text-[#86868b] hover:bg-black/[0.04]"
-                    >
+                    <button type="submit" className={ui.btnGhost}>
                       拒绝
                     </button>
                   </form>
@@ -116,24 +99,24 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
         </section>
       )}
 
-      <section className="rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-        <h2 className="text-[20px] font-semibold text-[#1d1d1f]">我的好友</h2>
+      <section className={ui.card}>
+        <h2 className="text-[20px] font-semibold text-white">我的好友</h2>
         {friends.length === 0 ? (
-          <p className="mt-4 text-[15px] text-[#86868b]">还没有好友，去添加吧</p>
+          <p className={`mt-4 ${ui.subtitle}`}>还没有好友，去添加吧</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {friends.map((friend) => (
               <li
                 key={friend.friendshipId}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-[#f5f5f7] p-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
               >
-                <p className="font-medium text-[#1d1d1f]">
+                <p className="font-medium text-zinc-100">
                   {displayLabel(friend.profile, friend.userId)}
                 </p>
                 <div className="flex gap-2">
                   <Link
                     href={`/chat/${friend.userId}`}
-                    className="rounded-full bg-[#0071e3] px-4 py-1.5 text-[13px] font-medium text-white hover:bg-[#0077ed]"
+                    className={ui.btnPrimarySm}
                   >
                     聊天
                   </Link>
@@ -143,10 +126,7 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
                       name="friendshipId"
                       value={friend.friendshipId}
                     />
-                    <button
-                      type="submit"
-                      className="rounded-full px-4 py-1.5 text-[13px] font-medium text-[#ff3b30] hover:bg-[#fff2f1]"
-                    >
+                    <button type="submit" className={ui.btnDanger}>
                       删除
                     </button>
                   </form>
@@ -158,20 +138,18 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
       </section>
 
       {outgoing.length > 0 && (
-        <section className="rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-          <h2 className="text-[20px] font-semibold text-[#1d1d1f]">
-            待确认的请求
-          </h2>
+        <section className={ui.card}>
+          <h2 className="text-[20px] font-semibold text-white">待确认的请求</h2>
           <ul className="mt-4 space-y-3">
             {outgoing.map((req) => (
               <li
                 key={req.id}
-                className="flex items-center justify-between rounded-2xl bg-[#f5f5f7] p-4"
+                className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
               >
-                <p className="font-medium text-[#1d1d1f]">
+                <p className="font-medium text-zinc-100">
                   {displayLabel(req.profile, req.addresseeId)}
                 </p>
-                <span className="text-[13px] text-[#86868b]">等待确认</span>
+                <span className={ui.label}>等待确认</span>
               </li>
             ))}
           </ul>
