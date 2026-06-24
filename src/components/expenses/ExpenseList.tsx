@@ -28,10 +28,10 @@ function ExpenseRow({
   return (
     <div className="relative overflow-hidden rounded-xl">
       <div
-        className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-red-500"
+        className="absolute inset-y-0 right-0 flex w-16 items-center justify-center bg-zinc-200/90 dark:bg-zinc-800/80"
         aria-hidden
       >
-        <Trash2 size={18} className="text-white" />
+        <Trash2 size={16} className="text-red-600/80 dark:text-red-400/50" />
       </div>
 
       <div
@@ -44,11 +44,11 @@ function ExpenseRow({
         onTouchMove={(e) => {
           if (!swiping) return;
           const delta = e.touches[0].clientX - startXRef.current;
-          setOffsetX(Math.max(-80, Math.min(0, delta)));
+          setOffsetX(Math.max(-64, Math.min(0, delta)));
         }}
         onTouchEnd={() => {
           setSwiping(false);
-          if (offsetX < -40) {
+          if (offsetX < -32) {
             onDelete(item.id);
           }
           setOffsetX(0);
@@ -79,10 +79,10 @@ function ExpenseRow({
           <button
             type="button"
             onClick={() => onDelete(item.id)}
-            className={`hidden rounded-lg p-2 opacity-0 transition group-hover:opacity-100 sm:inline-flex ${ui.btnDanger}`}
+            className="hidden rounded-lg p-1.5 text-zinc-400 opacity-0 transition group-hover:opacity-100 hover:bg-zinc-100 hover:text-red-600 dark:text-zinc-600 dark:hover:bg-white/[0.04] dark:hover:text-red-400/70 sm:inline-flex"
             aria-label="删除"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
