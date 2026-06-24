@@ -10,7 +10,7 @@ type ChatPageProps = {
 
 export default async function ChatPage({ params }: ChatPageProps) {
   const { friendId } = await params;
-  const { userId } = await getDashboardUser(`/chat/${friendId}`);
+  const { userId, displayName } = await getDashboardUser(`/chat/${friendId}`);
   const supabase = await createClient();
 
   const { data: friendship } = await supabase
@@ -58,6 +58,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
       </Link>
       <ChatRoom
         currentUserId={userId}
+        currentUsername={displayName}
         friendId={friendId}
         friendName={friendName}
         initialMessages={messages ?? []}

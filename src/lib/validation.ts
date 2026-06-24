@@ -1,10 +1,12 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+const NICKNAME_REGEX = /^[\w\u4e00-\u9fff]{2,20}$/;
 
 export type FieldErrors = {
   email?: string;
   password?: string;
   username?: string;
+  nickname?: string;
 };
 
 export function validateEmail(email: string): string | undefined {
@@ -27,6 +29,15 @@ export function validateUsername(username: string): string | undefined {
   if (!trimmed) return "Username is required";
   if (!USERNAME_REGEX.test(trimmed)) {
     return "Username must be 3–20 characters (letters, numbers, underscore)";
+  }
+  return undefined;
+}
+
+export function validateNickname(nickname: string): string | undefined {
+  const trimmed = nickname.trim();
+  if (!trimmed) return "昵称不能为空";
+  if (!NICKNAME_REGEX.test(trimmed)) {
+    return "昵称 2–20 个字符，支持中文、字母、数字和下划线";
   }
   return undefined;
 }

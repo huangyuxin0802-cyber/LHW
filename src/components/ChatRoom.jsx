@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessageAction } from "@/app/actions/messages";
+import NicknameEditor from "@/components/NicknameEditor";
 
 const initialState = {};
 
@@ -18,6 +19,7 @@ function formatTime(iso) {
 /**
  * @param {{
  *   currentUserId: string;
+ *   currentUsername: string;
  *   friendId: string;
  *   friendName: string;
  *   initialMessages: Array<{ id: string; sender_id: string; recipient_id: string; content: string; created_at: string }>;
@@ -25,11 +27,13 @@ function formatTime(iso) {
  */
 export default function ChatRoom({
   currentUserId,
+  currentUsername,
   friendId,
   friendName,
   initialMessages,
 }) {
   const [messages, setMessages] = useState(initialMessages);
+  const [myName, setMyName] = useState(currentUsername);
   const [state, formAction, isPending] = useActionState(
     sendMessageAction,
     initialState
@@ -44,6 +48,10 @@ export default function ChatRoom({
   useEffect(() => {
     setMessages(initialMessages);
   }, [initialMessages]);
+
+  useEffect(() => {
+    setMyName(currentUsername);
+  }, [currentUsername]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,6 +93,15 @@ export default function ChatRoom({
         <h2 className="text-[20px] font-semibold text-[#1d1d1f]">
           与 {friendName} 的对话
         </h2>
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-[#f5f5f7] px-4 py-3">
+          <span className="text-[13px] font-medium text-[#86868b]">我的昵称</span>
+          <NicknameEditor
+            initialUsername={myName}
+            onUpdated={setMyName}
+            variant="light"
+            compact
+          />
+        </div>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-6 py-4">

@@ -5,22 +5,35 @@ import Link from "next/link";
 const navItems = [
   { id: "home", label: "首页", href: "/", icon: HomeIcon },
   { id: "dashboard", label: "个人主页", href: "/dashboard", icon: UserIcon },
+  { id: "profile", label: "个人资料", href: "/profile", icon: ProfileIcon },
   { id: "notes", label: "笔记", href: "/notes", icon: NotesIcon },
   { id: "calculator", label: "计算器", href: "/calculator", icon: CalcIcon },
   { id: "friends", label: "好友", href: "/friends", icon: FriendsIcon },
 ];
 
-export default function Sidebar({ activeItem = "dashboard", user, footer }) {
+export default function Sidebar({ activeItem = "dashboard", user, footer, theme = "light" }) {
+  const isDark = theme === "dark";
+
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-black/[0.06] bg-white">
+    <aside
+      className={`flex h-full w-[240px] shrink-0 flex-col border-r ${
+        isDark
+          ? "border-white/[0.06] bg-zinc-950"
+          : "border-black/[0.06] bg-white"
+      }`}
+    >
       <div className="px-5 py-6">
         <Link
           href="/"
-          className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]"
+          className={`text-[21px] font-semibold tracking-tight ${
+            isDark ? "text-white" : "text-[#1d1d1f]"
+          }`}
         >
           LHW
         </Link>
-        <p className="mt-1 text-[13px] text-[#86868b]">个人账户</p>
+        <p className={`mt-1 text-[13px] ${isDark ? "text-zinc-500" : "text-[#86868b]"}`}>
+          个人账户
+        </p>
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
@@ -32,8 +45,12 @@ export default function Sidebar({ activeItem = "dashboard", user, footer }) {
               href={href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition ${
                 isActive
-                  ? "bg-[#0071e3]/10 text-[#0071e3]"
-                  : "text-[#1d1d1f] hover:bg-[#f5f5f7]"
+                  ? isDark
+                    ? "bg-white/10 text-white"
+                    : "bg-[#0071e3]/10 text-[#0071e3]"
+                  : isDark
+                    ? "text-zinc-400 hover:bg-white/[0.04] hover:text-white"
+                    : "text-[#1d1d1f] hover:bg-[#f5f5f7]"
               }`}
             >
               <Icon active={isActive} />
@@ -44,12 +61,24 @@ export default function Sidebar({ activeItem = "dashboard", user, footer }) {
       </nav>
 
       {user && (
-        <div className="border-t border-black/[0.06] px-5 py-4">
-          <p className="truncate text-[15px] font-medium text-[#1d1d1f]">
+        <div
+          className={`border-t px-5 py-4 ${
+            isDark ? "border-white/[0.06]" : "border-black/[0.06]"
+          }`}
+        >
+          <p
+            className={`truncate text-[15px] font-medium ${
+              isDark ? "text-zinc-100" : "text-[#1d1d1f]"
+            }`}
+          >
             {user.name}
           </p>
           {user.email && (
-            <p className="mt-0.5 truncate text-[13px] text-[#86868b]">
+            <p
+              className={`mt-0.5 truncate text-[13px] ${
+                isDark ? "text-zinc-500" : "text-[#86868b]"
+              }`}
+            >
               {user.email}
             </p>
           )}
@@ -94,6 +123,26 @@ function UserIcon({ active }) {
     >
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="12" cy="10" r="2.5" />
+      <path d="M7 17c0-2.2 2.2-4 5-4s5 1.8 5 4" />
     </svg>
   );
 }
