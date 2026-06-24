@@ -1,6 +1,7 @@
 "use client";
 
 import { EXPENSE_CATEGORIES } from "@/types/expense";
+import { ui } from "@/lib/ui";
 
 type ExpenseFormProps = {
   amount: string;
@@ -27,12 +28,11 @@ export default function ExpenseForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]"
-    >
-      <div className="flex items-end gap-1 border-b border-gray-100 pb-3 transition focus-within:border-gray-200 focus-within:bg-gray-50/80">
-        <span className="pb-1 text-[32px] font-light text-gray-400">¥</span>
+    <form onSubmit={handleSubmit} className={`p-5 ${ui.cardInner}`}>
+      <div
+        className={`flex items-end gap-1 border-b pb-3 transition focus-within:bg-zinc-100/80 dark:focus-within:bg-white/[0.04] ${ui.divider}`}
+      >
+        <span className={`pb-1 text-[32px] font-light ${ui.label}`}>¥</span>
         <input
           type="text"
           inputMode="decimal"
@@ -44,15 +44,13 @@ export default function ExpenseForm({
               onAmountChange(val);
             }
           }}
-          className="w-full bg-transparent text-[40px] font-semibold tracking-tight text-gray-900 outline-none placeholder:text-gray-300"
+          className={`w-full bg-transparent text-[40px] font-semibold tracking-tight outline-none placeholder:opacity-40 ${ui.textPrimary}`}
           aria-label="金额"
         />
       </div>
 
       <div className="mt-5">
-        <p className="mb-2 text-[12px] font-medium uppercase tracking-wider text-gray-400">
-          分类
-        </p>
+        <p className={`mb-2 ${ui.eyebrow}`}>分类</p>
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-1">
           {EXPENSE_CATEGORIES.map((cat) => {
             const selected = category === cat;
@@ -63,8 +61,8 @@ export default function ExpenseForm({
                 onClick={() => onCategoryChange(cat)}
                 className={`shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition ${
                   selected
-                    ? "bg-gray-900 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-zinc-950"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/15"
                 }`}
               >
                 {cat}
@@ -79,12 +77,12 @@ export default function ExpenseForm({
         placeholder="备注（选填）"
         value={note}
         onChange={(e) => onNoteChange(e.target.value)}
-        className="mt-4 w-full rounded-xl bg-gray-50 px-4 py-3 text-[15px] text-gray-800 outline-none placeholder:text-gray-400 focus:bg-gray-100"
+        className={`mt-4 ${ui.input}`}
       />
 
       <button
         type="submit"
-        className="mt-5 w-full rounded-2xl bg-blue-600 py-3.5 text-[16px] font-semibold text-white transition hover:bg-blue-700 active:scale-[0.99]"
+        className={`mt-5 w-full !py-3.5 !text-[16px] font-semibold ${ui.btnPrimary}`}
       >
         记一笔
       </button>

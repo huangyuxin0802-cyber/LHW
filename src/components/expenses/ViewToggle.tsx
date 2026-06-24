@@ -1,6 +1,7 @@
 "use client";
 
 import type { ExpenseView } from "@/types/expense";
+import { ui } from "@/lib/ui";
 
 type ViewToggleProps = {
   view: ExpenseView;
@@ -14,7 +15,7 @@ export default function ViewToggle({ view, onChange }: ViewToggleProps) {
   ];
 
   return (
-    <div className="flex rounded-xl bg-gray-200/80 p-1">
+    <div className="flex rounded-xl bg-zinc-200/80 p-1 dark:bg-white/10">
       {options.map((opt) => {
         const active = view === opt.id;
         return (
@@ -24,8 +25,8 @@ export default function ViewToggle({ view, onChange }: ViewToggleProps) {
             onClick={() => onChange(opt.id)}
             className={`flex-1 rounded-lg py-2 text-[13px] font-medium transition ${
               active
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white"
+                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
             }`}
           >
             {opt.label}

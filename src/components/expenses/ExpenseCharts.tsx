@@ -18,6 +18,7 @@ import {
   formatMoney,
   type CategoryStat,
 } from "@/lib/expense-utils";
+import { ui } from "@/lib/ui";
 
 type ExpenseChartsProps = {
   trend: { label: string; total: number }[];
@@ -35,9 +36,9 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-gray-100 bg-white px-3 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-      <p className="text-[12px] text-gray-400">{label}</p>
-      <p className="text-[15px] font-semibold text-gray-900">
+    <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-zinc-900">
+      <p className="text-[12px] text-zinc-500">{label}</p>
+      <p className={`text-[15px] font-semibold ${ui.textPrimary}`}>
         ¥{formatMoney(payload[0].value)}
       </p>
     </div>
@@ -53,10 +54,12 @@ export default function ExpenseCharts({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-        <h3 className="text-[15px] font-semibold text-gray-900">近 7 日趋势</h3>
+      <section className={`p-5 ${ui.cardSm}`}>
+        <h3 className={`text-[15px] font-semibold ${ui.textPrimary}`}>
+          近 7 日趋势
+        </h3>
         {!hasTrend ? (
-          <p className="mt-8 text-center text-[14px] text-gray-400">
+          <p className={`mt-8 text-center text-[14px] ${ui.label}`}>
             暂无足够数据生成图表
           </p>
         ) : (
@@ -65,7 +68,8 @@ export default function ExpenseCharts({
               <BarChart data={trend} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
                 <CartesianGrid
                   vertical={false}
-                  stroke="#f3f4f6"
+                  stroke="currentColor"
+                  className="text-zinc-100 dark:text-white/10"
                   strokeDasharray="3 3"
                 />
                 <XAxis
@@ -91,10 +95,12 @@ export default function ExpenseCharts({
         )}
       </section>
 
-      <section className="rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-        <h3 className="text-[15px] font-semibold text-gray-900">分类占比</h3>
+      <section className={`p-5 ${ui.cardSm}`}>
+        <h3 className={`text-[15px] font-semibold ${ui.textPrimary}`}>
+          分类占比
+        </h3>
         {!hasCategories ? (
-          <p className="mt-8 text-center text-[14px] text-gray-400">
+          <p className={`mt-8 text-center text-[14px] ${ui.label}`}>
             暂无足够数据生成图表
           </p>
         ) : (
@@ -120,9 +126,7 @@ export default function ExpenseCharts({
                       />
                     ))}
                   </Pie>
-                  <Tooltip
-                    content={<ChartTooltip />}
-                  />
+                  <Tooltip content={<ChartTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -133,7 +137,7 @@ export default function ExpenseCharts({
                   key={item.category}
                   className="flex items-center justify-between text-[14px]"
                 >
-                  <div className="flex items-center gap-2.5 text-gray-700">
+                  <div className={`flex items-center gap-2.5 ${ui.body}`}>
                     <span
                       className="h-2.5 w-2.5 rounded-full"
                       style={{
@@ -144,7 +148,7 @@ export default function ExpenseCharts({
                     <CategoryIcon category={item.category} size={15} />
                     <span>{item.category}</span>
                   </div>
-                  <span className="tabular-nums text-gray-500">
+                  <span className={`tabular-nums ${ui.label}`}>
                     {item.percent}% · ¥{formatMoney(item.total)}
                   </span>
                 </li>

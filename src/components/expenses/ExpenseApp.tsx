@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ExpenseCharts from "@/components/expenses/ExpenseCharts";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
@@ -16,6 +15,7 @@ import {
   saveExpenses,
   toDateKey,
 } from "@/lib/expense-utils";
+import { ui } from "@/lib/ui";
 import type { Expense, ExpenseView } from "@/types/expense";
 import { EXPENSE_CATEGORIES } from "@/types/expense";
 
@@ -64,57 +64,39 @@ export default function ExpenseApp() {
   };
 
   if (!hydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-[14px] text-gray-400">加载中…</p>
-      </div>
-    );
+    return <p className={`py-12 text-center ${ui.subtitle}`}>加载中…</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      <div className="mx-auto w-full max-w-md px-4 pt-6">
-        <Link
-          href="/dashboard"
-          className="mb-4 inline-block text-[13px] text-gray-400 transition hover:text-gray-600"
-        >
-          ← 返回主页
-        </Link>
+    <div className="mx-auto w-full max-w-md">
+      <header className={`mb-6 rounded-2xl border p-6 text-center ${ui.cardInner}`}>
+        <p className={ui.eyebrow}>今日总支出</p>
+        <p className={`mt-2 text-[48px] font-bold tracking-tight ${ui.textPrimary}`}>
+          <span className={`text-[28px] font-medium ${ui.label}`}>¥</span>
+          {formatMoney(todayTotal)}
+        </p>
+        <p className={`mt-1 text-[12px] ${ui.label}`}>{toDateKey(new Date())}</p>
+      </header>
 
-        <header className="mb-6 text-center">
-          <p className="text-[13px] font-medium uppercase tracking-wider text-gray-400">
-            每日开销本
-          </p>
-          <p className="mt-2 text-[13px] text-gray-500">今日总支出</p>
-          <p className="mt-1 text-[48px] font-bold tracking-tight text-gray-900">
-            <span className="text-[28px] font-medium text-gray-400">¥</span>
-            {formatMoney(todayTotal)}
-          </p>
-          <p className="mt-1 text-[12px] text-gray-400">
-            {toDateKey(new Date())}
-          </p>
-        </header>
+      <ViewToggle view={view} onChange={setView} />
 
-        <ViewToggle view={view} onChange={setView} />
-
-        <div className="mt-5 space-y-5">
-          {view === "list" ? (
-            <>
-              <ExpenseForm
-                amount={amount}
-                category={category}
-                note={note}
-                onAmountChange={setAmount}
-                onCategoryChange={setCategory}
-                onNoteChange={setNote}
-                onSubmit={handleAdd}
-              />
-              <ExpenseList groups={groups} onDelete={handleDelete} />
-            </>
-          ) : (
-            <ExpenseCharts trend={trend} categories={categoryStats} />
-          )}
-        </div>
+      <div className="mt-5 space-y-5">
+        {view === "list" ? (
+          <>
+            <ExpenseForm
+              amount={amount}
+              category={category}
+              note={note}
+              onAmountChange={setAmount}
+              onCategoryChange={setCategory}
+              onNoteChange={setNote}
+              onSubmit={handleAdd}
+            />
+            <ExpenseList groups={groups} onDelete={handleDelete} />
+          </>
+        ) : (
+          <ExpenseCharts trend={trend} categories={categoryStats} />
+        )}
       </div>
     </div>
   );
