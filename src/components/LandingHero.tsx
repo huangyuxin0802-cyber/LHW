@@ -54,10 +54,10 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
             />
           </Link>
           <Link
-            href={isAuthenticated ? "/notes" : "/login"}
+            href="/map"
             className={`inline-flex items-center px-6 py-3 text-[14px] font-medium ${ui.btnSecondary}`}
           >
-            {isAuthenticated ? "View Notes" : "Sign in"}
+            Brisbane Discount Map
           </Link>
         </div>
       </motion.div>
