@@ -8,6 +8,7 @@ const navItems = [
   { id: "home", label: "首页", href: "/", icon: HomeIcon },
   { id: "dashboard", label: "个人主页", href: "/dashboard", icon: UserIcon },
   { id: "profile", label: "个人资料", href: "/profile", icon: ProfileIcon },
+  { id: "expenses", label: "开销本", href: "/expenses", icon: ExpenseIcon },
   { id: "notes", label: "笔记", href: "/notes", icon: NotesIcon },
   { id: "calculator", label: "计算器", href: "/calculator", icon: CalcIcon },
   { id: "friends", label: "好友", href: "/friends", icon: FriendsIcon },
@@ -91,6 +92,15 @@ function ProfileIcon() {
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="12" cy="10" r="2.5" />
       <path d="M7 17c0-2.2 2.2-4 5-4s5 1.8 5 4" />
+    </svg>
+  );
+}
+
+function ExpenseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20M6 15h2" />
     </svg>
   );
 }
