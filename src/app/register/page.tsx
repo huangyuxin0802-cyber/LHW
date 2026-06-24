@@ -3,13 +3,13 @@ import { AuthForm } from "@/components/AuthForm";
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4 py-12">
+    <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-[#f5f5f7] px-6 py-16">
       <AuthForm mode="register" />
       <Link
         href="/"
-        className="mt-6 text-sm text-zinc-500 hover:text-zinc-700"
+        className="mt-10 text-[15px] text-[#86868b] transition hover:text-[#1d1d1f]"
       >
-        ← Back to home
+        返回首页
       </Link>
     </div>
   );

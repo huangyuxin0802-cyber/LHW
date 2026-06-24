@@ -97,77 +97,73 @@ export default function Calculator() {
     );
   }, []);
 
-  const btnClass =
-    "flex h-14 items-center justify-center rounded-xl text-lg font-medium transition active:scale-95";
-  const numClass = `${btnClass} bg-zinc-100 text-zinc-900 hover:bg-zinc-200`;
-  const opClass = `${btnClass} bg-indigo-100 text-indigo-700 hover:bg-indigo-200`;
-  const actionClass = `${btnClass} bg-zinc-200 text-zinc-700 hover:bg-zinc-300`;
+  const btn =
+    "flex h-[72px] items-center justify-center rounded-full text-[28px] font-normal transition active:scale-[0.96]";
+  const num = `${btn} bg-[#333333] text-white hover:bg-[#4d4d4d]`;
+  const fn = `${btn} bg-[#a5a5a5] text-black hover:bg-[#bfbfbf]`;
+  const op = `${btn} bg-[#ff9f0a] text-white hover:bg-[#ffb340]`;
 
   return (
-    <div className="mx-auto w-full max-w-xs rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-inner">
-      <div className="mb-4 rounded-xl bg-zinc-900 px-4 py-5 text-right">
+    <div className="w-full max-w-[320px] rounded-[28px] bg-black p-4">
+      <div className="mb-4 px-2 py-6 text-right">
         {operator && stored !== null && (
-          <p className="text-xs text-zinc-400">
+          <p className="text-[15px] text-[#86868b]">
             {stored} {operator}
           </p>
         )}
-        <p className="truncate text-3xl font-semibold tabular-nums text-white">
+        <p className="truncate text-[64px] font-light leading-none tracking-tight text-white">
           {display}
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        <button type="button" className={actionClass} onClick={clear}>
+      <div className="grid grid-cols-4 gap-3">
+        <button type="button" className={fn} onClick={clear}>
           AC
         </button>
-        <button type="button" className={actionClass} onClick={handleToggleSign}>
+        <button type="button" className={fn} onClick={handleToggleSign}>
           ±
         </button>
-        <button type="button" className={actionClass} onClick={handlePercent}>
+        <button type="button" className={fn} onClick={handlePercent}>
           %
         </button>
-        <button type="button" className={opClass} onClick={() => handleOperator("÷")}>
+        <button type="button" className={op} onClick={() => handleOperator("÷")}>
           ÷
         </button>
 
         {["7", "8", "9"].map((d) => (
-          <button key={d} type="button" className={numClass} onClick={() => inputDigit(d)}>
+          <button key={d} type="button" className={num} onClick={() => inputDigit(d)}>
             {d}
           </button>
         ))}
-        <button type="button" className={opClass} onClick={() => handleOperator("×")}>
+        <button type="button" className={op} onClick={() => handleOperator("×")}>
           ×
         </button>
 
         {["4", "5", "6"].map((d) => (
-          <button key={d} type="button" className={numClass} onClick={() => inputDigit(d)}>
+          <button key={d} type="button" className={num} onClick={() => inputDigit(d)}>
             {d}
           </button>
         ))}
-        <button type="button" className={opClass} onClick={() => handleOperator("-")}>
+        <button type="button" className={op} onClick={() => handleOperator("-")}>
           −
         </button>
 
         {["1", "2", "3"].map((d) => (
-          <button key={d} type="button" className={numClass} onClick={() => inputDigit(d)}>
+          <button key={d} type="button" className={num} onClick={() => inputDigit(d)}>
             {d}
           </button>
         ))}
-        <button type="button" className={opClass} onClick={() => handleOperator("+")}>
+        <button type="button" className={op} onClick={() => handleOperator("+")}>
           +
         </button>
 
-        <button type="button" className={`${numClass} col-span-2`} onClick={() => inputDigit("0")}>
+        <button type="button" className={`${num} col-span-2 !justify-start pl-7`} onClick={() => inputDigit("0")}>
           0
         </button>
-        <button type="button" className={numClass} onClick={inputDot}>
+        <button type="button" className={num} onClick={inputDot}>
           .
         </button>
-        <button
-          type="button"
-          className={`${btnClass} bg-indigo-600 text-white hover:bg-indigo-500`}
-          onClick={handleEquals}
-        >
+        <button type="button" className={op} onClick={handleEquals}>
           =
         </button>
       </div>

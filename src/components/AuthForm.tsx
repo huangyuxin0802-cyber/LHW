@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import {
   loginAction,
   registerAction,
+  resendConfirmationAction,
   type AuthActionState,
 } from "@/app/actions/auth";
 
@@ -13,121 +14,150 @@ const initialState: AuthActionState = {};
 type AuthFormProps = {
   mode: "login" | "register";
   next?: string;
+  callbackError?: string;
 };
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-sm text-red-600">{message}</p>;
+  return <p className="mt-1.5 text-[13px] text-[#ff3b30]">{message}</p>;
 }
 
-export function AuthForm({ mode, next }: AuthFormProps) {
+export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
   const action = mode === "login" ? loginAction : registerAction;
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const [resendState, resendAction, isResending] = useActionState(
+    resendConfirmationAction,
+    initialState
+  );
 
   const isLogin = mode === "login";
+  const displayError = state.error ?? resendState.error ?? callbackError;
+  const displaySuccess = state.success ?? resendState.success;
+  const pendingEmail = state.pendingEmail ?? resendState.pendingEmail;
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-      <div className="mb-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          {isLogin ? "Welcome back" : "Create your account"}
+    <div className="w-full max-w-[400px]">
+      <div className="mb-10 text-center">
+        <p className="text-[13px] font-medium uppercase tracking-[0.2em] text-[#86868b]">
+          LHW
+        </p>
+        <h1 className="mt-3 text-[32px] font-semibold tracking-tight text-[#1d1d1f]">
+          {isLogin ? "登录" : "创建账户"}
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          {isLogin
-            ? "Sign in to access your personal page"
-            : "Join us with email and password"}
+        <p className="mt-2 text-[17px] leading-relaxed text-[#86868b]">
+          {isLogin ? "使用邮箱登录你的账户" : "注册后将发送验证邮件"}
         </p>
       </div>
 
-      <form action={formAction} className="space-y-5" noValidate>
-        {!isLogin && (
+      <div className="rounded-[20px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)]">
+        <form action={formAction} className="space-y-5" noValidate>
+          {!isLogin && (
+            <div>
+              <label
+                htmlFor="username"
+                className="mb-2 block text-[13px] font-medium text-[#86868b]"
+              >
+                用户名
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+                placeholder="your_name"
+              />
+              <FieldError message={state.fieldErrors?.username} />
+            </div>
+          )}
+
           <div>
             <label
-              htmlFor="username"
-              className="block text-sm font-medium text-zinc-700"
+              htmlFor="email"
+              className="mb-2 block text-[13px] font-medium text-[#86868b]"
             >
-              Username
+              邮箱
             </label>
             <input
-              id="username"
-              name="username"
-              type="text"
-              autoComplete="username"
-              className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-              placeholder="your_username"
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              defaultValue={pendingEmail}
+              className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+              placeholder="name@example.com"
             />
-            <FieldError message={state.fieldErrors?.username} />
+            <FieldError message={state.fieldErrors?.email} />
           </div>
-        )}
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-zinc-700"
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            placeholder="you@example.com"
-          />
-          <FieldError message={state.fieldErrors?.email} />
-        </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-2 block text-[13px] font-medium text-[#86868b]"
+            >
+              密码
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              className="w-full rounded-xl bg-[#f5f5f7] px-4 py-3.5 text-[17px] text-[#1d1d1f] outline-none transition placeholder:text-[#86868b] focus:bg-[#ebebed] focus:ring-2 focus:ring-[#0071e3]/30"
+              placeholder={isLogin ? "输入密码" : "至少 8 位，含字母和数字"}
+            />
+            <FieldError message={state.fieldErrors?.password} />
+          </div>
 
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-zinc-700"
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={isLogin ? "current-password" : "new-password"}
-            className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            placeholder={isLogin ? "Your password" : "At least 8 characters"}
-          />
-          <FieldError message={state.fieldErrors?.password} />
-          {!isLogin && (
-            <p className="mt-1 text-xs text-zinc-400">
-              Use 8+ characters with letters and numbers
-            </p>
+          {isLogin && next && <input type="hidden" name="next" value={next} />}
+
+          {displayError && (
+            <div
+              className="rounded-xl bg-[#fff2f1] px-4 py-3 text-[15px] text-[#ff3b30]"
+              role="alert"
+            >
+              {displayError}
+            </div>
           )}
-        </div>
 
-        {isLogin && next && <input type="hidden" name="next" value={next} />}
+          {displaySuccess && (
+            <div
+              className="rounded-xl bg-[#f0faf0] px-4 py-3 text-[15px] leading-relaxed text-[#248a3d]"
+              role="status"
+            >
+              {displaySuccess}
+            </div>
+          )}
 
-        {state.error && (
-          <div
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-            role="alert"
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-full bg-[#0071e3] px-4 py-3.5 text-[17px] font-medium text-white transition hover:bg-[#0077ed] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {state.error}
-          </div>
+            {isPending ? "请稍候…" : isLogin ? "登录" : "注册"}
+          </button>
+        </form>
+
+        {pendingEmail && displaySuccess && (
+          <form action={resendAction} className="mt-4">
+            <input type="hidden" name="email" value={pendingEmail} />
+            <button
+              type="submit"
+              disabled={isResending}
+              className="w-full text-center text-[15px] text-[#0071e3] transition hover:text-[#0077ed] disabled:opacity-50"
+            >
+              {isResending ? "发送中…" : "没收到？重新发送验证邮件"}
+            </button>
+          </form>
         )}
+      </div>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Please wait…" : isLogin ? "Sign in" : "Create account"}
-        </button>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-zinc-500">
-        {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+      <p className="mt-8 text-center text-[15px] text-[#86868b]">
+        {isLogin ? "还没有账户？" : "已有账户？"}{" "}
         <Link
           href={isLogin ? "/register" : "/login"}
-          className="font-medium text-indigo-600 hover:text-indigo-500"
+          className="font-medium text-[#0071e3] hover:text-[#0077ed]"
         >
-          {isLogin ? "Sign up" : "Sign in"}
+          {isLogin ? "注册" : "登录"}
         </Link>
       </p>
     </div>
