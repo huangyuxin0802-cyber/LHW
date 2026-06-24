@@ -14,10 +14,10 @@ export default async function HomePage() {
           <nav className="flex items-center gap-3">
             {isAuthenticated ? (
               <Link
-                href="/profile"
+                href="/dashboard"
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
               >
-                My Profile
+                进入主页
               </Link>
             ) : (
               <>
@@ -50,10 +50,10 @@ export default async function HomePage() {
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           {isAuthenticated ? (
             <Link
-              href="/profile"
+              href="/dashboard"
               className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-500"
             >
-              Go to personal center
+              进入个人主页
             </Link>
           ) : (
             <>

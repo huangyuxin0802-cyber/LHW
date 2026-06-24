@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-const PROTECTED_PREFIXES = ["/profile"];
+const PROTECTED_PREFIXES = ["/dashboard"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
@@ -51,10 +51,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuthenticated && isAuthPage) {
-    const profileUrl = request.nextUrl.clone();
-    profileUrl.pathname = "/profile";
-    profileUrl.search = "";
-    return NextResponse.redirect(profileUrl);
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.search = "";
+    return NextResponse.redirect(dashboardUrl);
   }
 
   return supabaseResponse;
