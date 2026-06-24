@@ -1,6 +1,7 @@
 import { logoutAction } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import Main from "@/components/Main";
+import MessageNotificationProvider from "@/components/MessageNotificationProvider";
 import Sidebar from "@/components/Sidebar";
 import { redirect } from "next/navigation";
 
@@ -54,18 +55,20 @@ export async function DashboardLayout({
   description,
   children,
 }) {
-  const { displayName, email } = await getDashboardUser();
+  const { displayName, email, userId } = await getDashboardUser();
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
-        activeItem={activeItem}
-        user={{ name: displayName, email }}
-        footer={<DashboardLogoutButton />}
-      />
-      <Main title={title} description={description}>
-        {children}
-      </Main>
-    </div>
+    <MessageNotificationProvider userId={userId}>
+      <div className="flex min-h-screen">
+        <Sidebar
+          activeItem={activeItem}
+          user={{ name: displayName, email }}
+          footer={<DashboardLogoutButton />}
+        />
+        <Main title={title} description={description}>
+          {children}
+        </Main>
+      </div>
+    </MessageNotificationProvider>
   );
 }
