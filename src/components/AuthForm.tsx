@@ -115,7 +115,9 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
               className="rounded-xl bg-[#fff2f1] px-4 py-3 text-[15px] text-[#ff3b30]"
               role="alert"
             >
-              {displayError}
+              {typeof displayError === "string"
+                ? displayError
+                : "注册失败，请稍后重试"}
             </div>
           )}
 

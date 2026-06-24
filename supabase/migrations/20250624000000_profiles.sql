@@ -38,7 +38,10 @@ begin
       nullif(trim(new.raw_user_meta_data->>'username'), ''),
       'user_' || left(replace(new.id::text, '-', ''), 8)
     )
-  );
+  )
+  on conflict (id) do update
+  set username = excluded.username
+  where public.profiles.username is null;
   return new;
 end;
 $$;

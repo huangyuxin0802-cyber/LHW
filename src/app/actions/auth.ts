@@ -20,6 +20,21 @@ export type AuthActionState = {
   };
 };
 
+function formatAuthError(error: { message?: string; code?: string; status?: number } | null) {
+  if (!error) return "未知错误，请稍后重试";
+
+  const message = error.message?.trim();
+  if (message) {
+    if (message.toLowerCase().includes("database error saving new user")) {
+      return "注册失败：账户资料创建出错，请稍后重试或联系管理员。";
+    }
+    return message;
+  }
+
+  if (error.code) return `注册失败（${error.code}）`;
+  return "注册失败，请稍后重试";
+}
+
 function getEmailRedirectTo(next = "/dashboard") {
   return `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
 }
@@ -80,7 +95,7 @@ export async function registerAction(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: formatAuthError(error) };
   }
 
   if (data.user?.identities?.length === 0) {
@@ -117,7 +132,7 @@ export async function resendConfirmationAction(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: formatAuthError(error) };
   }
 
   return {
