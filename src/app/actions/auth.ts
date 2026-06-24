@@ -22,7 +22,7 @@ export async function loginAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/profile");
+  const next = String(formData.get("next") ?? "/dashboard");
 
   const fieldErrors = validateLoginForm(email, password);
   if (Object.keys(fieldErrors).length > 0) {
@@ -39,7 +39,7 @@ export async function loginAction(
     return { error: error.message };
   }
 
-  redirect(next.startsWith("/") ? next : "/profile");
+  redirect(next.startsWith("/") ? next : "/dashboard");
 }
 
 export async function registerAction(
@@ -69,7 +69,7 @@ export async function registerAction(
   }
 
   if (data.session) {
-    redirect("/profile");
+    redirect("/dashboard");
   }
 
   return {
