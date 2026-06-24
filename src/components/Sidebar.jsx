@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ui } from "@/lib/ui";
 
 const navItems = [
   { id: "home", label: "首页", href: "/", icon: HomeIcon },
@@ -13,15 +15,17 @@ const navItems = [
 
 export default function Sidebar({ activeItem = "dashboard", user, footer }) {
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-zinc-950">
+    <aside
+      className={`flex h-full w-[240px] shrink-0 flex-col border-r ${ui.sidebar}`}
+    >
       <div className="px-5 py-6">
         <Link
           href="/"
-          className="text-[21px] font-semibold tracking-tight text-white"
+          className={`text-[21px] font-semibold tracking-tight ${ui.sidebarBrand}`}
         >
           LHW
         </Link>
-        <p className="mt-1 text-[13px] text-zinc-500">个人账户</p>
+        <p className={`mt-1 text-[13px] ${ui.sidebarMuted}`}>个人账户</p>
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
@@ -32,9 +36,7 @@ export default function Sidebar({ activeItem = "dashboard", user, footer }) {
               key={id}
               href={href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition ${
-                isActive
-                  ? "bg-white/10 text-white"
-                  : "text-zinc-400 hover:bg-white/[0.04] hover:text-white"
+                isActive ? ui.sidebarLinkActive : ui.sidebarLink
               }`}
             >
               <Icon />
@@ -44,13 +46,17 @@ export default function Sidebar({ activeItem = "dashboard", user, footer }) {
         })}
       </nav>
 
+      <div className="px-3 pb-2">
+        <ThemeToggle compact />
+      </div>
+
       {user && (
-        <div className="border-t border-white/[0.06] px-5 py-4">
-          <p className="truncate text-[15px] font-medium text-zinc-100">
+        <div className={`border-t px-5 py-4 ${ui.divider}`}>
+          <p className={`truncate text-[15px] font-medium ${ui.sidebarUser}`}>
             {user.name}
           </p>
           {user.email && (
-            <p className="mt-0.5 truncate text-[13px] text-zinc-500">
+            <p className={`mt-0.5 truncate text-[13px] ${ui.sidebarMuted}`}>
               {user.email}
             </p>
           )}

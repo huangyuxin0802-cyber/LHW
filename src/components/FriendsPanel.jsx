@@ -66,15 +66,15 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
 
       {incoming.length > 0 && (
         <section className={ui.card}>
-          <h2 className="text-[20px] font-semibold text-white">收到的好友请求</h2>
+          <h2 className={`text-[20px] font-semibold ${ui.textPrimary}`}>收到的好友请求</h2>
           <ul className="mt-4 space-y-3">
             {incoming.map((req) => (
               <li
                 key={req.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-zinc-50 p-4 dark:border-white/[0.06] dark:bg-white/[0.02]"
               >
                 <div>
-                  <p className="font-medium text-zinc-100">
+                  <p className={`font-medium ${ui.textPrimary}`}>
                     {displayLabel(req.profile, req.requesterId)}
                   </p>
                   <p className={ui.label}>{formatTime(req.created_at)}</p>
@@ -100,7 +100,7 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
       )}
 
       <section className={ui.card}>
-        <h2 className="text-[20px] font-semibold text-white">我的好友</h2>
+        <h2 className={`text-[20px] font-semibold ${ui.textPrimary}`}>我的好友</h2>
         {friends.length === 0 ? (
           <p className={`mt-4 ${ui.subtitle}`}>还没有好友，去添加吧</p>
         ) : (
@@ -108,9 +108,9 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
             {friends.map((friend) => (
               <li
                 key={friend.friendshipId}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-zinc-50 p-4 dark:border-white/[0.06] dark:bg-white/[0.02]"
               >
-                <p className="font-medium text-zinc-100">
+                <p className={`font-medium ${ui.textPrimary}`}>
                   {displayLabel(friend.profile, friend.userId)}
                 </p>
                 <div className="flex gap-2">
@@ -139,14 +139,14 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
 
       {outgoing.length > 0 && (
         <section className={ui.card}>
-          <h2 className="text-[20px] font-semibold text-white">待确认的请求</h2>
+          <h2 className={`text-[20px] font-semibold ${ui.textPrimary}`}>待确认的请求</h2>
           <ul className="mt-4 space-y-3">
             {outgoing.map((req) => (
               <li
                 key={req.id}
-                className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                className="flex items-center justify-between rounded-2xl border border-black/[0.06] bg-zinc-50 p-4 dark:border-white/[0.06] dark:bg-white/[0.02]"
               >
-                <p className="font-medium text-zinc-100">
+                <p className={`font-medium ${ui.textPrimary}`}>
                   {displayLabel(req.profile, req.addresseeId)}
                 </p>
                 <span className={ui.label}>等待确认</span>

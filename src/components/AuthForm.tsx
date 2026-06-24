@@ -111,7 +111,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
 
           {displayError && (
             <div
-              className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[15px] text-red-400"
+              className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[15px] text-red-600 dark:text-red-400"
               role="alert"
             >
               {typeof displayError === "string"
@@ -122,7 +122,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
 
           {displaySuccess && (
             <div
-              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[15px] leading-relaxed text-emerald-400"
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[15px] leading-relaxed text-emerald-600 dark:text-emerald-400"
               role="status"
             >
               {displaySuccess}
@@ -144,7 +144,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
             <button
               type="submit"
               disabled={isResending}
-              className="w-full text-center text-[15px] text-zinc-300 transition hover:text-white disabled:opacity-50"
+              className="w-full text-center text-[15px] text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white disabled:opacity-50"
             >
               {isResending ? "发送中…" : "没收到？重新发送验证邮件"}
             </button>
@@ -156,7 +156,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
         {isLogin ? "还没有账户？" : "已有账户？"}{" "}
         <Link
           href={isLogin ? "/register" : "/login"}
-          className="font-medium text-white hover:text-zinc-200"
+          className="font-medium text-zinc-900 hover:text-zinc-700 dark:text-white dark:hover:text-zinc-200"
         >
           {isLogin ? "注册" : "登录"}
         </Link>

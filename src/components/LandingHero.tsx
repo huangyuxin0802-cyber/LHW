@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { ui } from "@/lib/ui";
 
 type LandingHeroProps = {
   isAuthenticated: boolean;
@@ -15,8 +16,8 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
-        <div className="absolute left-1/2 top-[-20%] h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-white/[0.04] blur-3xl" />
-        <div className="absolute bottom-[-10%] right-[-10%] h-[360px] w-[360px] rounded-full bg-zinc-800/30 blur-3xl" />
+        <div className="absolute left-1/2 top-[-20%] h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-zinc-900/[0.04] blur-3xl dark:bg-white/[0.04]" />
+        <div className="absolute bottom-[-10%] right-[-10%] h-[360px] w-[360px] rounded-full bg-zinc-300/40 blur-3xl dark:bg-zinc-800/30" />
       </div>
 
       <motion.div
@@ -25,18 +26,18 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
         transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 flex max-w-3xl flex-col items-center"
       >
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-zinc-400 backdrop-blur-sm">
-          <Sparkles size={12} className="text-zinc-300" />
+        <div className={ui.badge}>
+          <Sparkles size={12} />
           Built for clarity and speed
         </div>
 
-        <h1 className="text-[44px] font-extralight leading-[1.05] tracking-[-0.03em] text-white sm:text-[64px] sm:leading-[1.02]">
+        <h1 className={`mt-8 text-[44px] font-extralight leading-[1.05] tracking-[-0.03em] sm:text-[64px] sm:leading-[1.02] ${ui.mainTitle}`}>
           Your workspace,
           <br />
-          <span className="font-semibold text-zinc-100">reimagined.</span>
+          <span className={ui.titleAccent}>reimagined.</span>
         </h1>
 
-        <p className="mt-6 max-w-xl text-[17px] font-normal leading-relaxed text-zinc-400 sm:text-[18px]">
+        <p className={`mt-6 max-w-xl text-[17px] font-normal leading-relaxed sm:text-[18px] ${ui.mainDesc}`}>
           A minimal account system with notes, friends, and realtime chat —
           designed with the precision of Apple and the focus of Linear.
         </p>
@@ -44,7 +45,7 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <Link
             href={isAuthenticated ? "/dashboard" : "/register"}
-            className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[14px] font-semibold text-zinc-950 transition hover:bg-zinc-200"
+            className={`group inline-flex items-center gap-2 px-6 py-3 text-[14px] font-semibold ${ui.btnPrimary}`}
           >
             {isAuthenticated ? "Open Dashboard" : "Start for free"}
             <ArrowRight
@@ -54,7 +55,7 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
           </Link>
           <Link
             href={isAuthenticated ? "/notes" : "/login"}
-            className="inline-flex items-center rounded-full border border-white/10 px-6 py-3 text-[14px] font-medium text-zinc-300 transition hover:border-white/20 hover:text-white"
+            className={`inline-flex items-center px-6 py-3 text-[14px] font-medium ${ui.btnSecondary}`}
           >
             {isAuthenticated ? "View Notes" : "Sign in"}
           </Link>
@@ -82,17 +83,12 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
             body: "Clean typography, subtle motion, and zero visual noise.",
           },
         ].map((item, i) => (
-          <div
-            key={item.title}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 text-left backdrop-blur-sm"
-          >
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
-              0{i + 1}
-            </p>
-            <h3 className="mt-3 text-[15px] font-semibold text-zinc-100">
+          <div key={item.title} className={`text-left ${ui.cardSm}`}>
+            <p className={ui.eyebrow}>0{i + 1}</p>
+            <h3 className={`mt-3 text-[15px] font-semibold ${ui.textPrimary}`}>
               {item.title}
             </h3>
-            <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">
+            <p className={`mt-2 text-[14px] leading-relaxed ${ui.sidebarMuted}`}>
               {item.body}
             </p>
           </div>

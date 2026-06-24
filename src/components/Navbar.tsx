@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ui } from "@/lib/ui";
 
 const navLinks = [
   { label: "Product", href: "#product" },
@@ -29,11 +31,11 @@ export default function Navbar({
     >
       <nav
         aria-label="Main"
-        className="mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full border border-white/10 bg-zinc-950/60 px-4 pl-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:px-6"
+        className={`mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full border px-4 pl-5 backdrop-blur-xl sm:px-6 ${ui.navBar}`}
       >
         <Link
           href="/"
-          className="text-[15px] font-semibold tracking-tight text-white transition-opacity hover:opacity-80"
+          className={`text-[15px] font-semibold tracking-tight transition-opacity hover:opacity-80 ${ui.sidebarBrand}`}
         >
           LHW
         </Link>
@@ -43,7 +45,7 @@ export default function Navbar({
             <li key={link.label}>
               <Link
                 href={link.href}
-                className="rounded-full px-3.5 py-1.5 text-[13px] font-medium tracking-wide text-zinc-400 transition-colors hover:text-white"
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium tracking-wide transition-colors ${ui.navLink}`}
               >
                 {link.label}
               </Link>
@@ -51,18 +53,21 @@ export default function Navbar({
           ))}
         </ul>
 
-        <div className="relative ml-auto shrink-0 rounded-full bg-gradient-to-r from-white/60 via-white/15 to-white/50 p-px shadow-[0_0_24px_rgba(255,255,255,0.12)]">
-          <Link
-            href={ctaHref}
-            className="group relative flex items-center gap-1.5 rounded-full bg-zinc-950 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-zinc-900"
-          >
-            {ctaLabel}
-            <ArrowUpRight
-              size={14}
-              strokeWidth={2}
-              className="text-zinc-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white"
-            />
-          </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          <div className={`relative shrink-0 rounded-full p-px ${ui.navCtaRing}`}>
+            <Link
+              href={ctaHref}
+              className={`group relative flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition ${ui.navCta}`}
+            >
+              {ctaLabel}
+              <ArrowUpRight
+                size={14}
+                strokeWidth={2}
+                className={`transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 ${ui.navLink}`}
+              />
+            </Link>
+          </div>
         </div>
       </nav>
     </motion.header>

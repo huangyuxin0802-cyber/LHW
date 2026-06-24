@@ -69,7 +69,7 @@ export default function Notes({ notes = [] }) {
           <ul className="mt-6 space-y-4">
             {notes.map((note) => (
               <li key={note.id} className={ui.cardInner}>
-                <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-zinc-100">
+                <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-zinc-900 dark:text-zinc-100">
                   {note.content}
                 </p>
                 <div className="mt-4 flex items-center justify-between gap-4">

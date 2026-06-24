@@ -90,8 +90,8 @@ export default function ChatRoom({
 
   return (
     <div className={`flex h-[calc(100vh-12rem)] flex-col ${ui.card} !p-0`}>
-      <div className="border-b border-white/[0.06] px-6 py-4">
-        <h2 className="text-[20px] font-semibold text-white">
+      <div className={`border-b px-6 py-4 ${ui.divider}`}>
+        <h2 className={`text-[20px] font-semibold ${ui.textPrimary}`}>
           与 {friendName} 的对话
         </h2>
         <div className={`mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 ${ui.cardInner}`}>
@@ -99,7 +99,6 @@ export default function ChatRoom({
           <NicknameEditor
             initialUsername={myName}
             onUpdated={setMyName}
-            variant="dark"
             compact
           />
         </div>
@@ -120,9 +119,7 @@ export default function ChatRoom({
               >
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isMine
-                      ? "bg-white text-zinc-950"
-                      : "border border-white/[0.08] bg-white/[0.06] text-zinc-100"
+                    isMine ? ui.chatMine : ui.chatTheirs
                   }`}
                 >
                   <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
@@ -145,7 +142,7 @@ export default function ChatRoom({
 
       <form
         action={formAction}
-        className="flex gap-3 border-t border-white/[0.06] px-6 py-4"
+        className={`flex gap-3 border-t px-6 py-4 ${ui.divider}`}
       >
         <input type="hidden" name="recipientId" value={friendId} />
         <input
