@@ -6,11 +6,15 @@ export default async function NotesPage() {
   const { userId, displayName } = await getDashboardUser("/notes");
   const supabase = await createClient();
 
-  const { data: notes } = await supabase
+  const { data: notes, error: selectError } = await supabase
     .from("notes")
     .select("id, content, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (selectError) {
+    throw new Error(selectError.message);
+  }
 
   return (
     <DashboardLayout

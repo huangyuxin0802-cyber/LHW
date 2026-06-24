@@ -1,0 +1,80 @@
+/* 基础重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* 整体布局：Flexbox 左右分栏 */
+body {
+    display: flex;
+    height: 100vh;
+    background-color: #f3f4f6;
+    overflow: hidden;
+}
+
+/* 左侧导航栏样式 */
+.sidebar {
+    width: 260px;
+    background-color: #1f2937;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 24px 20px;
+    border-bottom: 1px solid #374151;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.sidebar .nav-links {
+    list-style: none;
+    margin-top: 20px;
+    flex-grow: 1;
+}
+
+.sidebar .nav-links li a {
+    display: block;
+    padding: 16px 24px;
+    color: #d1d5db;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-links li a:hover {
+    background-color: #374151;
+    color: white;
+    padding-left: 30px; /* Hover时的小动效 */
+}
+
+.sidebar .nav-links li a.active {
+    background-color: #374151;
+    color: white;
+    border-left: 4px solid #3b82f6; /* 高亮当前页 */
+}
+
+/* 右侧主内容区样式 */
+.content {
+    flex-grow: 1;
+    padding: 40px;
+    overflow-y: auto; /* 内容过多时允许滚动 */
+    color: #111827;
+}
+
+.content h1 {
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.content p {
+    line-height: 1.6;
+    margin-bottom: 15px;
+    color: #4b5563;
+}

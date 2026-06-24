@@ -1,6 +1,4 @@
-import Calculator from "@/components/Calculator";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { getDashboardUser } from "@/components/DashboardLayout";
+import { DashboardLayout, getDashboardUser } from "@/components/DashboardLayout";
 
 export default async function DashboardPage() {
   const { displayName, email, profile } = await getDashboardUser();
@@ -53,18 +51,6 @@ export default async function DashboardPage() {
             </dd>
           </div>
         </dl>
-      </section>
-
-      <section className="mt-6 rounded-[24px] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] sm:p-10">
-        <h2 className="text-[24px] font-semibold tracking-tight text-[#1d1d1f]">
-          计算器
-        </h2>
-        <p className="mt-1 text-[15px] text-[#86868b]">
-          支持加减乘除、小数与百分比
-        </p>
-        <div className="mt-8 flex justify-center">
-          <Calculator />
-        </div>
       </section>
     </DashboardLayout>
   );

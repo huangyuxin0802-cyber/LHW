@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>左侧垂直导航栏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">My App</div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">📊 仪表盘</a></li>
+            <li><a href="#">📁 项目管理</a></li>
+            <li><a href="#">👥 团队成员</a></li>
+            <li><a href="#">⚙️ 系统设置</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>欢迎回来</h1>
+        <p>这是一个带有左侧垂直导航栏的基础布局。你可以在这里添加你的核心业务内容。</p>
+        <p>由于使用了 Flexbox 布局，左侧导航栏高度会自动撑满全屏，右侧内容区如
+# 1. 创建并进入文件夹
+mkdir -p sidebar-layout && cd sidebar-layout
+
+# 2. 生成 HTML 文件
+cat << 'EOF' > index.html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>左侧垂直导航栏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">My App</div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">📊 仪表盘</a></li>
+            <li><a href="#">📁 项目管理</a></li>
+            <li><a href="#">👥 团队成员</a></li>
+            <li><a href="#">⚙️ 系统设置</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>欢迎回来</h1>
+        <p>这是一个带有左侧垂直导航栏的基础布局。你可以在这里添加你的核心业务内容。</p>
+        <p>由于使用了 Flexbox 布局，左侧导航栏高度会自动撑满全屏，右侧内容区如果超出屏幕高度会自动出现滚动条。</p>
+    </main>
+</body>
+</html>
