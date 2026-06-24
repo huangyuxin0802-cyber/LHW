@@ -20,12 +20,14 @@ export function CategoryIcon({
   category,
   size = 18,
   className,
+  style,
 }: {
   category: string;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const Icon =
     CATEGORY_ICONS[category as ExpenseCategory] ?? MoreHorizontal;
-  return <Icon size={size} className={className} aria-hidden />;
+  return <Icon size={size} className={className} style={style} aria-hidden />;
 }

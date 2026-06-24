@@ -150,13 +150,30 @@ export function getCategoryStats(expenses: Expense[]): CategoryStat[] {
     .sort((a, b) => b.total - a.total);
 }
 
-export const CATEGORY_COLORS = [
-  "#52525b",
-  "#71717a",
-  "#a1a1aa",
-  "#94a3b8",
-  "#cbd5e1",
+export const CATEGORY_COLOR_MAP: Record<ExpenseCategory, string> = {
+  餐饮: "#f97316",
+  交通: "#3b82f6",
+  购物: "#ec4899",
+  娱乐: "#8b5cf6",
+  杂项: "#14b8a6",
+};
+
+export const BAR_DAY_COLORS = [
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#f97316",
+  "#22c55e",
+  "#06b6d4",
+  "#ef4444",
 ];
+
+export function getCategoryColor(category: string) {
+  if (isExpenseCategory(category)) {
+    return CATEGORY_COLOR_MAP[category];
+  }
+  return "#71717a";
+}
 
 export function formatMoney(amount: number) {
   return amount.toLocaleString("zh-CN", {

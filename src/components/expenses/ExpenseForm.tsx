@@ -1,6 +1,7 @@
 "use client";
 
 import { EXPENSE_CATEGORIES } from "@/types/expense";
+import { getCategoryColor } from "@/lib/expense-utils";
 import { ui } from "@/lib/ui";
 
 type ExpenseFormProps = {
@@ -54,6 +55,7 @@ export default function ExpenseForm({
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-1">
           {EXPENSE_CATEGORIES.map((cat) => {
             const selected = category === cat;
+            const color = getCategoryColor(cat);
             return (
               <button
                 key={cat}
@@ -61,9 +63,10 @@ export default function ExpenseForm({
                 onClick={() => onCategoryChange(cat)}
                 className={`shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition ${
                   selected
-                    ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-zinc-950"
+                    ? "text-white shadow-md"
                     : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/15"
                 }`}
+                style={selected ? { backgroundColor: color } : undefined}
               >
                 {cat}
               </button>

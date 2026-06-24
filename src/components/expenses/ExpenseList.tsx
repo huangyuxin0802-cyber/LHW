@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { CategoryIcon } from "@/components/expenses/CategoryIcon";
-import { formatMoney } from "@/lib/expense-utils";
+import { formatMoney, getCategoryColor } from "@/lib/expense-utils";
 import type { DayGroup } from "@/lib/expense-utils";
 import { ui } from "@/lib/ui";
 
@@ -55,7 +55,13 @@ function ExpenseRow({
         }}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: `${getCategoryColor(item.category)}22`,
+              color: getCategoryColor(item.category),
+            }}
+          >
             <CategoryIcon category={item.category} size={16} />
           </div>
           <div className="min-w-0">
