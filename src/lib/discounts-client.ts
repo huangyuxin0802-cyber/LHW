@@ -50,7 +50,7 @@ export async function fetchDiscountsInBounds(
     query = query.ilike("city", city);
   }
 
-  const { data, error } = await query.limit(5000);
+  const { data, error } = await query.limit(120);
 
   if (error) {
     throw error;
