@@ -12,7 +12,7 @@ type ExpenseListProps = {
   onDelete: (id: string) => void;
 };
 
-function ExpenseRow({
+function TransactionRow({
   item,
   onDelete,
 }: {
@@ -23,7 +23,8 @@ function ExpenseRow({
   const [swiping, setSwiping] = useState(false);
   const startXRef = useRef(0);
 
-  const noteText = item.note.trim() || item.category;
+  const isIncome = item.type === "income";
+  const title = item.description.trim() || item.category;
 
   return (
     <div className="relative overflow-hidden rounded-xl">
@@ -66,15 +67,23 @@ function ExpenseRow({
           </div>
           <div className="min-w-0">
             <p className={`truncate text-[15px] font-medium ${ui.textPrimary}`}>
-              {noteText}
+              {title}
             </p>
-            <p className={ui.label}>{item.category}</p>
+            <span className="mt-1 inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-white/10 dark:text-zinc-400">
+              {item.category}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 pl-3">
-          <span className={`text-[15px] font-semibold tabular-nums ${ui.textPrimary}`}>
-            - {formatMoney(item.amount)}
+          <span
+            className={`text-[15px] font-semibold tabular-nums ${
+              isIncome
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {isIncome ? "+" : "-"} ¥{formatMoney(item.amount)}
           </span>
           <button
             type="button"
@@ -102,23 +111,33 @@ export default function ExpenseList({ groups, onDelete }: ExpenseListProps) {
 
   return (
     <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.dateKey}>
-          <div className="mb-2 flex items-baseline justify-between px-1">
-            <h3 className={`text-[13px] font-semibold ${ui.label}`}>
-              {group.label}
-            </h3>
-            <span className={`text-[13px] tabular-nums ${ui.label}`}>
-              ¥{formatMoney(group.total)}
-            </span>
-          </div>
-          <div className={`space-y-2 p-2 ${ui.cardInner}`}>
-            {group.items.map((item) => (
-              <ExpenseRow key={item.id} item={item} onDelete={onDelete} />
-            ))}
-          </div>
-        </section>
-      ))}
+      {groups.map((group) => {
+        const groupPositive = group.total >= 0;
+
+        return (
+          <section key={group.dateKey}>
+            <div className="mb-2 flex items-baseline justify-between px-1">
+              <h3 className={`text-[13px] font-semibold ${ui.label}`}>
+                {group.label}
+              </h3>
+              <span
+                className={`text-[13px] tabular-nums ${
+                  groupPositive
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {groupPositive ? "+" : "-"}¥{formatMoney(Math.abs(group.total))}
+              </span>
+            </div>
+            <div className={`space-y-2 p-2 ${ui.cardInner}`}>
+              {group.items.map((item) => (
+                <TransactionRow key={item.id} item={item} onDelete={onDelete} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

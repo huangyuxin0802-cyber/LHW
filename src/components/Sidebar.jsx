@@ -8,7 +8,7 @@ const navItems = [
   { id: "home", label: "首页", href: "/", icon: HomeIcon },
   { id: "dashboard", label: "个人主页", href: "/dashboard", icon: UserIcon },
   { id: "profile", label: "个人资料", href: "/profile", icon: ProfileIcon },
-  { id: "expenses", label: "开销本", href: "/expenses", icon: ExpenseIcon },
+  { id: "expenses", label: "记账本", href: "/expenses", icon: ExpenseIcon },
   { id: "map", label: "折扣地图", href: "/map", icon: MapIcon },
   { id: "notes", label: "笔记", href: "/notes", icon: NotesIcon },
   { id: "calculator", label: "计算器", href: "/calculator", icon: CalcIcon },

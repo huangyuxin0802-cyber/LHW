@@ -5,8 +5,8 @@ export default async function ExpensesPage() {
   return (
     <DashboardLayout
       activeItem="expenses"
-      title="开销本"
-      description="记录每日支出，查看统计图表。"
+      title="记账本"
+      description="记录收入与支出，支持自定义分类与统计图表。"
     >
       <ExpenseApp />
     </DashboardLayout>
