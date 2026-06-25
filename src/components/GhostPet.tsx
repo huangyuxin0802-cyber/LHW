@@ -139,8 +139,10 @@ function randomIdleDelayMs() {
 }
 
 function randomDropDelayMs() {
-  return 15_000 + Math.floor(Math.random() * 30_000);
+  return 12_000 + Math.floor(Math.random() * 16_000);
 }
+
+const FIRST_FOOD_DELAY_MS = 4_000;
 
 function randomTrickDurationMs() {
   return 5_000 + Math.floor(Math.random() * 5_000);
@@ -282,6 +284,7 @@ export default function GhostPet() {
   const spontaneousPendingRef = useRef(false);
   const idleTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
+  const firstFoodTimerRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressFiredRef = useRef(false);
   const trickResetTimerRef = useRef<number | null>(null);
@@ -306,6 +309,7 @@ export default function GhostPet() {
   const [showFlyTrail, setShowFlyTrail] = useState(false);
   const [activeFoods, setActiveFoods] = useState<ActiveFood[]>([]);
   const [trickLocked, setTrickLocked] = useState(false);
+  const [hintVisible, setHintVisible] = useState(false);
 
   ghostAnimStateRef.current = ghostAnimState;
   trickLockedRef.current = trickLocked;
@@ -569,6 +573,17 @@ export default function GhostPet() {
 
   useEffect(() => {
     setMounted(true);
+    try {
+      const seen = localStorage.getItem("lhw-ghost-hint-seen");
+      if (!seen) {
+        setHintVisible(true);
+        localStorage.setItem("lhw-ghost-hint-seen", "1");
+        const t = window.setTimeout(() => setHintVisible(false), 8000);
+        return () => window.clearTimeout(t);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -577,7 +592,10 @@ export default function GhostPet() {
     }
 
     scheduleIdleSpeech();
-    scheduleFoodDrop();
+    firstFoodTimerRef.current = window.setTimeout(() => {
+      spawnFood();
+      scheduleFoodDrop();
+    }, FIRST_FOOD_DELAY_MS);
 
     return () => {
       if (idleTimerRef.current) {
@@ -586,11 +604,14 @@ export default function GhostPet() {
       if (dropTimerRef.current) {
         window.clearTimeout(dropTimerRef.current);
       }
+      if (firstFoodTimerRef.current) {
+        window.clearTimeout(firstFoodTimerRef.current);
+      }
       if (trickResetTimerRef.current) {
         window.clearTimeout(trickResetTimerRef.current);
       }
     };
-  }, [mounted, hydrated, scheduleFoodDrop, scheduleIdleSpeech]);
+  }, [mounted, hydrated, scheduleFoodDrop, scheduleIdleSpeech, spawnFood]);
 
   useEffect(() => {
     if (!spontaneousPendingRef.current || isLoading) {
@@ -731,6 +752,19 @@ export default function GhostPet() {
             }, 80);
           }}
         >
+          <AnimatePresence>
+            {hintVisible && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="absolute bottom-[calc(100%+0.5rem)] right-0 w-[min(calc(100vw-2rem),16rem)] rounded-2xl border border-amber-300/40 bg-amber-950/95 px-3 py-2 text-[12px] leading-snug text-amber-100 shadow-xl"
+              >
+                👻 电子宠物已上线！等天上掉落食物，点击喂我；长按我 0.8 秒有彩蛋。
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {bubbleText && (
               <motion.div
