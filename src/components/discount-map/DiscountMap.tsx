@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Map, { Marker, Popup } from "react-map-gl/mapbox";
+import Map, { Marker, Popup } from "react-map-gl/maplibre";
 import supabase from "@/lib/supabaseClient";
-import "mapbox-gl/dist/mapbox-gl.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 type DailyDiscount = {
   id: string;
@@ -14,6 +14,7 @@ type DailyDiscount = {
   platform: "First Table" | "EatClub";
   discount_text: string;
   booking_url: string;
+  distance: number | null;
 };
 
 const INITIAL_VIEW = {
@@ -21,6 +22,8 @@ const INITIAL_VIEW = {
   longitude: 153.026,
   zoom: 14,
 };
+
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/bright";
 
 function PlatformMarker({
   platform,
@@ -55,14 +58,12 @@ export default function DiscountMap() {
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<DailyDiscount | null>(null);
 
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
   useEffect(() => {
     async function fetchDiscounts() {
       const { data, error } = await supabase
         .from("daily_discounts")
         .select(
-          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url"
+          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance"
         );
 
       if (error) {
@@ -78,26 +79,6 @@ export default function DiscountMap() {
     void fetchDiscounts();
   }, []);
 
-  if (!mapboxToken) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-zinc-950 px-6 text-center text-white">
-        <p className="text-lg font-semibold">Mapbox token required</p>
-        <p className="max-w-md text-sm text-zinc-400">
-          Add{" "}
-          <code className="text-zinc-200">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code>{" "}
-          to <code className="text-zinc-200">.env.local</code> and Vercel env
-          vars. Get a free token at mapbox.com.
-        </p>
-        <Link
-          href="/"
-          className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-medium text-zinc-900"
-        >
-          Back to home
-        </Link>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
@@ -105,6 +86,24 @@ export default function DiscountMap() {
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
           <p className="text-sm text-zinc-400">Loading Brisbane discounts…</p>
         </div>
+      </div>
+    );
+  }
+
+  if (restaurants.length === 0) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-zinc-950 px-6 text-center text-white">
+        <p className="text-lg font-semibold">No discounts found</p>
+        <p className="max-w-md text-sm text-zinc-400">
+          Check your Supabase connection and ensure{" "}
+          <code className="text-zinc-200">daily_discounts</code> has seed data.
+        </p>
+        <Link
+          href="/"
+          className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-medium text-zinc-900"
+        >
+          Back to home
+        </Link>
       </div>
     );
   }
@@ -119,9 +118,8 @@ export default function DiscountMap() {
       </Link>
 
       <Map
-        mapboxAccessToken={mapboxToken}
         initialViewState={INITIAL_VIEW}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle={MAP_STYLE}
         style={{ width: "100%", height: "100%" }}
       >
         {restaurants.map((restaurant) => (
@@ -145,9 +143,9 @@ export default function DiscountMap() {
             anchor="bottom"
             onClose={() => setSelectedRestaurant(null)}
             closeOnClick={false}
-            className="[&_.mapboxgl-popup-content]:!p-0 [&_.mapboxgl-popup-content]:!bg-transparent [&_.mapboxgl-popup-content]:!shadow-none"
+            className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none"
           >
-            <div className="w-72 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+            <div className="w-72 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:w-80">
               <div className="p-4">
                 <h2 className="text-lg font-bold text-zinc-900">
                   {selectedRestaurant.restaurant_name}
@@ -164,6 +162,11 @@ export default function DiscountMap() {
                 <p className="mt-3 text-base font-semibold text-emerald-600">
                   {selectedRestaurant.discount_text}
                 </p>
+                {selectedRestaurant.distance != null && (
+                  <p className="mt-2 text-sm text-zinc-500">
+                    {selectedRestaurant.distance.toFixed(1)}km away
+                  </p>
+                )}
               </div>
               <a
                 href={selectedRestaurant.booking_url}
