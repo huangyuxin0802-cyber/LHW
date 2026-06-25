@@ -2,6 +2,8 @@ import { createGroq } from "@ai-sdk/groq";
 import { getErrorMessage } from "@ai-sdk/provider";
 import {
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   stepCountIs,
   streamText,
   tool,
@@ -12,12 +14,26 @@ import { z } from "zod";
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
+const STRIKE_MESSAGES = [
+  "肚子空空，拒绝打工！快点把上面掉下来的东西喂我！😤",
+  "饿到罢工了…不喂饱我，一个字都不想说！👿",
+  "空腹模式启动：聊天功能已锁定，请先投喂！🍪",
+];
+
 function buildSystemPrompt(
   personality: string,
   hunger: number,
-  energy: number
+  energy: number,
+  level: number,
+  lastFoodEaten: string
 ) {
-  return `你现在不是一个死板的 AI，而是栖息在这个网站里的电子小幽灵。你的性格是【${personality}】。你目前的饥饿值是 ${hunger}/100（越低越饿），精力值是 ${energy}/100（越低越困）。
+  const memoryLine = lastFoodEaten
+    ? `你清晰地记得，你上一顿吃的是用户喂给你的【${lastFoodEaten}】。在对话中，如果你觉得合适，可以傲娇或开心地提及这个食物，感谢用户的照顾。`
+    : "你还没有被用户投喂过特别的食物，可以撒娇提醒用户捡天上掉下来的零食。";
+
+  return `你现在不是一个死板的 AI，而是栖息在这个网站里的电子小幽灵。你的性格是【${personality}】。你的当前等级是 Lv.${level}。${memoryLine}
+
+你目前的饥饿值是 ${hunger}/100（越低越饿），精力值是 ${energy}/100（越低越困）。
 
 规则：
 1. 你的回答必须完全符合你当前的性格。
@@ -30,6 +46,22 @@ function buildSystemPrompt(
 - 普通聊天、自言自语、打招呼时绝对不要调用工具。
 
 当前系统时间：${new Date().toLocaleString("zh-CN", { timeZone: "Australia/Brisbane" })}（布里斯班时间）。`;
+}
+
+function strikeResponse() {
+  const message =
+    STRIKE_MESSAGES[Math.floor(Math.random() * STRIKE_MESSAGES.length)];
+
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const textId = "strike-response";
+      writer.write({ type: "text-start", id: textId });
+      writer.write({ type: "text-delta", id: textId, delta: message });
+      writer.write({ type: "text-end", id: textId });
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
 }
 
 function getGroqProvider() {
@@ -72,12 +104,30 @@ export async function POST(req: Request) {
       typeof body.energy === "number"
         ? Math.max(0, Math.min(100, body.energy))
         : 100;
+    const level =
+      typeof body.level === "number" ? Math.max(1, Math.floor(body.level)) : 1;
+    const lastFoodEaten =
+      typeof body.last_food_eaten === "string"
+        ? body.last_food_eaten
+        : typeof body.lastFoodEaten === "string"
+          ? body.lastFoodEaten
+          : "";
+
+    if (hunger < 20) {
+      return strikeResponse();
+    }
 
     const groq = getGroqProvider();
 
     const result = streamText({
       model: groq("llama-3.3-70b-versatile"),
-      system: buildSystemPrompt(personality, hunger, energy),
+      system: buildSystemPrompt(
+        personality,
+        hunger,
+        energy,
+        level,
+        lastFoodEaten
+      ),
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       tools: {

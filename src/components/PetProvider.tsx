@@ -11,6 +11,7 @@ import {
 import {
   applyOfflineDecay,
   clampPet,
+  computeMoodState,
   loadPetFromStorage,
   loadPetFromSupabase,
   savePetToStorage,
@@ -22,8 +23,10 @@ type PetContextValue = {
   pet: PetStatus;
   hydrated: boolean;
   setPersonality: (personality: PetPersonality) => void;
-  feedPet: (amount?: number) => void;
-  patchPet: (patch: Partial<Pick<PetStatus, "hunger" | "energy">>) => void;
+  feedPet: (foodLabel: string, hungerAmount?: number) => void;
+  patchPet: (
+    patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
+  ) => void;
 };
 
 const PetContext = createContext<PetContextValue | null>(null);
@@ -48,6 +51,7 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
             ...remote,
             hunger: Math.min(local.hunger, remote.hunger),
             energy: Math.min(local.energy, remote.energy),
+            xp: Math.max(local.xp, remote.xp),
           })
         );
         setPet(merged);
@@ -80,14 +84,18 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     }
 
     const timer = window.setInterval(() => {
-      setPet((prev) =>
-        clampPet({
+      setPet((prev) => {
+        const hunger = prev.hunger - 1;
+        const energy = prev.energy - 1;
+
+        return clampPet({
           ...prev,
-          hunger: prev.hunger - 1,
-          energy: prev.energy - 1,
+          hunger,
+          energy,
+          moodState: computeMoodState(hunger, energy),
           lastUpdated: new Date().toISOString(),
-        })
-      );
+        });
+      });
     }, 60_000);
 
     return () => window.clearInterval(timer);
@@ -103,25 +111,37 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const feedPet = useCallback((amount = 20) => {
-    setPet((prev) =>
-      clampPet({
+  const feedPet = useCallback((foodLabel: string, hungerAmount = 15) => {
+    setPet((prev) => {
+      const hunger = prev.hunger + hungerAmount;
+      const xp = prev.xp + 10;
+
+      return clampPet({
         ...prev,
-        hunger: prev.hunger + amount,
+        hunger,
+        xp,
+        lastFoodEaten: foodLabel,
+        moodState: computeMoodState(hunger, prev.energy),
         lastUpdated: new Date().toISOString(),
-      })
-    );
+      });
+    });
   }, []);
 
   const patchPet = useCallback(
-    (patch: Partial<Pick<PetStatus, "hunger" | "energy">>) => {
-      setPet((prev) =>
-        clampPet({
+    (
+      patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
+    ) => {
+      setPet((prev) => {
+        const hunger = patch.hunger ?? prev.hunger;
+        const energy = patch.energy ?? prev.energy;
+
+        return clampPet({
           ...prev,
           ...patch,
+          moodState: patch.moodState ?? computeMoodState(hunger, energy),
           lastUpdated: new Date().toISOString(),
-        })
-      );
+        });
+      });
     },
     []
   );

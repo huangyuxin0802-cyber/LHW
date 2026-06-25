@@ -86,7 +86,7 @@ export default function TransactionForm({
         event.preventDefault();
         onSubmit();
       }}
-      className={`p-5 ${ui.cardInner}`}
+      className={`p-5 ${ui.cardInner} dark:bg-zinc-900/80`}
     >
       <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-zinc-100 p-1 dark:bg-white/5">
         <button
@@ -147,7 +147,11 @@ export default function TransactionForm({
             setCategoryOpen((open) => !open);
             setCustomMode(false);
           }}
-          className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm ${ui.input}`}
+          className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+            categoryOpen
+              ? "border-zinc-300 bg-white ring-2 ring-zinc-900/5 dark:border-white/20 dark:bg-zinc-900 dark:ring-white/10"
+              : ui.input
+          }`}
         >
           <span className={ui.textPrimary}>{category || "选择分类"}</span>
           <span className={ui.label}>{categoryOpen ? "▲" : "▼"}</span>
@@ -155,11 +159,14 @@ export default function TransactionForm({
 
         {categoryOpen && (
           <div
-            className={`absolute z-20 mt-2 w-full overflow-hidden rounded-xl border shadow-lg ${ui.cardInner}`}
+            className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-xl shadow-black/10 ring-1 ring-black/[0.04] dark:border-white/15 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/50 dark:ring-white/10"
           >
             {!customMode ? (
               <ul className="max-h-52 overflow-y-auto py-1">
-                {presetCategories.map((item) => (
+                {presetCategories.map((item) => {
+                  const selected = category === item;
+
+                  return (
                   <li key={item}>
                     <button
                       type="button"
@@ -167,46 +174,49 @@ export default function TransactionForm({
                         onCategoryChange(item);
                         setCategoryOpen(false);
                       }}
-                      className={`w-full px-3 py-2.5 text-left text-sm transition hover:bg-zinc-100 dark:hover:bg-white/5 ${
-                        category === item
+                      className={`w-full px-3 py-2.5 text-left text-sm transition ${
+                        selected
                           ? isIncome
-                            ? "font-semibold text-green-600 dark:text-green-400"
-                            : "font-semibold text-red-600 dark:text-red-400"
-                          : ui.textPrimary
+                            ? "bg-green-500/10 font-semibold text-green-600 dark:bg-green-500/15 dark:text-green-400"
+                            : "bg-red-500/10 font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-400"
+                          : `${ui.textPrimary} hover:bg-zinc-100 dark:hover:bg-zinc-800`
                       }`}
                     >
                       {item}
                     </button>
                   </li>
-                ))}
+                  );
+                })}
                 {!presetCategories.includes(category) && category && (
                   <li>
                     <button
                       type="button"
                       onClick={() => setCategoryOpen(false)}
                       className={`w-full px-3 py-2.5 text-left text-sm font-medium ${
-                        isIncome ? "text-green-600" : "text-red-600"
+                        isIncome
+                          ? "bg-green-500/10 text-green-600 dark:bg-green-500/15 dark:text-green-400"
+                          : "bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-400"
                       }`}
                     >
                       {category}（自定义）
                     </button>
                   </li>
                 )}
-                <li className="border-t border-zinc-200 dark:border-white/10">
+                <li className="border-t border-zinc-200 dark:border-zinc-700">
                   <button
                     type="button"
                     onClick={() => {
                       setCustomMode(true);
                       setCustomDraft("");
                     }}
-                    className="w-full px-3 py-2.5 text-left text-sm font-medium text-violet-600 hover:bg-zinc-100 dark:text-violet-400 dark:hover:bg-white/5"
+                    className="w-full px-3 py-2.5 text-left text-sm font-medium text-violet-600 transition hover:bg-zinc-100 dark:text-violet-400 dark:hover:bg-zinc-800"
                   >
                     + 添加自定义分类
                   </button>
                 </li>
               </ul>
             ) : (
-              <div className="space-y-2 p-3">
+              <div className="space-y-2 bg-white p-3 dark:bg-zinc-900">
                 <input
                   type="text"
                   value={customDraft}
