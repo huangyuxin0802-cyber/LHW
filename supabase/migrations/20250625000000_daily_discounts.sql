@@ -29,30 +29,30 @@ insert into public.daily_discounts (
 )
 values
   (
-    'Blackbird Dining & Bar',
-    -27.4654,
-    153.0301,
+    'The Lex',
+    -27.4689,
+    153.0234,
     'First Table',
-    '$10 Book for 50% Off Food',
-    'https://www.firsttable.com.au/brisbane/blackbird',
-    0.6
+    '50% Off Food — First Table',
+    'https://www.firsttable.com.au/brisbane/brisbane-cbd/the-lex',
+    null
   ),
   (
-    'Joyful Chinese Seafood Restaurant',
-    -27.4698,
-    153.0255,
+    'Ciao',
+    -27.4648,
+    153.0356,
     'EatClub',
-    '30% Off Total Bill — Dine In',
-    'https://eatclub.com.au/venues/joyful-chinese-seafood-restaurant',
-    0.3
+    'Up to 35% Off — Dine In',
+    'https://eatclub.com.au/venue/ciao-papi',
+    null
   ),
   (
-    'Vista Lounge at Emporium Hotel',
-    -27.4772,
-    153.0218,
+    'Lennons Restaurant & Bar',
+    -27.4702,
+    153.0258,
     'First Table',
-    '$15 Book for 40% Off Dining',
-    'https://www.firsttable.com.au/brisbane/vista-lounge',
-    1.2
+    '50% Off Food — First Table',
+    'https://www.firsttable.com.au/brisbane/brisbane-cbd/lennons-restaurant-and-bar',
+    null
   )
 on conflict do nothing;
