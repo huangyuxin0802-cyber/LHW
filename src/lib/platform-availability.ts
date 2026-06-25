@@ -33,6 +33,13 @@ function parseFirstTableNextData(html: string) {
   return data.props?.pageProps?.page ?? null;
 }
 
+const FIRST_TABLE_SESSION_NAMES: Record<string, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  dinner2: "Late Dinner",
+};
+
 export async function fetchFirstTableAvailability(
   bookingUrl: string
 ): Promise<PlatformAvailability> {
@@ -56,50 +63,39 @@ export async function fetchFirstTableAvailability(
     return {
       platform: "First Table",
       status: "unknown",
-      summary: "无法读取 First Table 页面，请直接在官网查看空位。",
+      summary: "无法读取 First Table 数据。",
       slots: [],
       fetchedAt: new Date().toISOString(),
       bookingUrl,
     };
   }
 
+  const restaurantName = String(page.title ?? "Restaurant");
   const sessionTypes = (page.firstTableSessionTypes as string[] | undefined) ?? [];
-  const openHours = String(page.openHours ?? "").replace(/\r/g, "");
   const bookingPrices =
     (page.bookingPricesBySession as Array<{ title: string; price: string }>) ??
     [];
   const venueStatus = String(page.status ?? "unknown");
 
-  const sessionLabels: Record<string, string> = {
-    breakfast: "早餐场次",
-    lunch: "午餐场次",
-    dinner: "晚餐第一场",
-    dinner2: "晚餐第二场",
-  };
+  const slots: AvailabilitySlot[] = sessionTypes.map((session) => {
+    const sessionName = FIRST_TABLE_SESSION_NAMES[session] ?? session;
+    const price =
+      bookingPrices.find((item) => item.title === session)?.price ?? "$10";
 
-  const slots: AvailabilitySlot[] = sessionTypes.map((session) => ({
-    label: sessionLabels[session] ?? session,
-    detail:
-      bookingPrices.find((item) => item.title === session)?.price ??
-      "50% off food",
-    available: venueStatus === "Live",
-  }));
-
-  if (openHours) {
-    slots.push({
-      label: "营业时间",
-      detail: openHours.split("\n").join(" · "),
-      available: true,
-    });
-  }
+    return {
+      label: `${restaurantName} · ${sessionName}`,
+      detail: `50% off food · booking fee ${price}`,
+      available: venueStatus === "Live",
+    };
+  });
 
   return {
     platform: "First Table",
     status: venueStatus === "Live" ? "live" : "unavailable",
     summary:
       venueStatus === "Live"
-        ? "已连接 First Table：以下场次开放预订，具体日期请在官网日历中确认。"
-        : "该餐厅当前在 First Table 上不可预订。",
+        ? `${restaurantName} 可在 First Table 预订：`
+        : `${restaurantName} 当前不可预订。`,
     slots,
     fetchedAt: new Date().toISOString(),
     bookingUrl,
@@ -129,32 +125,19 @@ export async function fetchEatClubAvailability(
   const discounts = unique(
     [...html.matchAll(/(\d+% Off)/g)].map((match) => match[1])
   );
-  const todayDiscount = discounts[0] ?? "优惠可用";
+  const todayDiscount = discounts[0] ?? "Discount";
 
   const slots: AvailabilitySlot[] = windows.map((window) => ({
-    label: todayDiscount,
-    detail: `到店时间 ${window}`,
+    label: `${window} · ${todayDiscount}`,
     available: true,
   }));
 
   if (slots.length === 0) {
-    const forecastMatches = unique(
-      [...html.matchAll(/(mon|tue|wed|thu|fri|sat|sun)[^<]{0,40}?(\d+% Off)/gi)].map(
-        (match) => `${match[1].toUpperCase()} · ${match[2]}`
-      )
-    );
-
     return {
       platform: "EatClub",
-      status: forecastMatches.length > 0 ? "live" : "unknown",
-      summary:
-        forecastMatches.length > 0
-          ? "已连接 EatClub：以下为预测优惠，今日具体时段以 App 为准。"
-          : "暂时无法读取 EatClub 优惠时段，请打开官网查看。",
-      slots: forecastMatches.slice(0, 7).map((item) => ({
-        label: item,
-        available: true,
-      })),
+      status: "unknown",
+      summary: "暂时无法读取 EatClub 折扣时段。",
+      slots: [],
       fetchedAt: new Date().toISOString(),
       bookingUrl,
     };
@@ -163,7 +146,7 @@ export async function fetchEatClubAvailability(
   return {
     platform: "EatClub",
     status: "live",
-    summary: "已连接 EatClub：以下为今日可预订优惠时段。",
+    summary: "今日有折扣的时段：",
     slots,
     fetchedAt: new Date().toISOString(),
     bookingUrl,

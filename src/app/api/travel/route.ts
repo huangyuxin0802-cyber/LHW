@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchOsrmTravelEstimates } from "@/lib/travel-utils";
+import { fetchGoogleTravelEstimates } from "@/lib/travel-utils";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const estimates = await fetchOsrmTravelEstimates(
+    const estimates = await fetchGoogleTravelEstimates(
       fromLat,
       fromLng,
       toLat,
@@ -27,14 +27,17 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       estimates,
+      source: "google",
       transitNote: "公交路线请在 Google Maps 中查看实时班次",
       fetchedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Failed to fetch travel estimates" },
-      { status: 502 }
-    );
+    const message =
+      error instanceof Error && error.message.includes("GOOGLE_MAPS_API_KEY")
+        ? "Google Maps API key is not configured"
+        : "Failed to fetch travel estimates";
+
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }

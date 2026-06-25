@@ -10,7 +10,6 @@ import { formatDistanceKm, haversineKm } from "@/lib/geo-utils";
 import type { PlatformAvailability } from "@/lib/platform-availability";
 import {
   buildGoogleMapsDirectionsUrl,
-  formatDuration,
   type TravelEstimate,
 } from "@/lib/travel-utils";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -403,11 +402,12 @@ export default function DiscountMap() {
                           <p className="text-sm font-medium text-zinc-800">
                             {slot.available ? "✅" : "⛔"} {slot.label}
                           </p>
-                          {slot.detail && (
-                            <p className="mt-0.5 text-xs text-zinc-500">
-                              {slot.detail}
-                            </p>
-                          )}
+                          {slot.detail &&
+                            selectedRestaurant.platform === "First Table" && (
+                              <p className="mt-0.5 text-xs text-zinc-500">
+                                {slot.detail}
+                              </p>
+                            )}
                         </div>
                       ))}
                     </div>
@@ -427,22 +427,29 @@ export default function DiscountMap() {
                       开启定位后可显示从你的位置出发的真实路程时间。
                     </p>
                   ) : travelLoading ? (
-                    <p className="mt-2 text-sm text-zinc-500">正在计算路线…</p>
+                    <p className="mt-2 text-sm text-zinc-500">正在从 Google Maps 获取路线…</p>
+                  ) : travelEstimates.length === 0 ? (
+                    <p className="mt-2 text-sm text-zinc-600">
+                      路线时间暂不可用，请配置 Google Maps API 后重试。
+                    </p>
                   ) : (
                     <div className="mt-2 space-y-1 text-sm text-zinc-700">
                       {drivingEstimate && (
                         <p className="flex items-center gap-2">
                           <Car className="h-4 w-4" />
-                          驾车约 {formatDuration(drivingEstimate.durationMinutes)}
+                          驾车 {drivingEstimate.durationText}
                           <span className="text-zinc-400">
-                            ({drivingEstimate.distanceKm.toFixed(1)} km)
+                            ({drivingEstimate.distanceText})
                           </span>
                         </p>
                       )}
                       {walkingEstimate && (
                         <p className="flex items-center gap-2">
                           <Footprints className="h-4 w-4" />
-                          步行约 {formatDuration(walkingEstimate.durationMinutes)}
+                          步行 {walkingEstimate.durationText}
+                          <span className="text-zinc-400">
+                            ({walkingEstimate.distanceText})
+                          </span>
                         </p>
                       )}
                       <p className="flex items-center gap-2 text-zinc-600">
