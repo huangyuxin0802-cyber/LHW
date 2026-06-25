@@ -521,7 +521,7 @@ export default function PetAssistant({
       window.setTimeout(() => setEatBubble(null), 3000);
 
       setGhostAnimState("eating");
-      feedPet(foodLabel, 15);
+      feedPet(foodLabel, 15, 10);
       void innerControls.start("eating").then(() => {
         if (ghostAnimStateRef.current === "eating") {
           resumePassiveAnim();

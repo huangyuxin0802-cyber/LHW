@@ -33,7 +33,7 @@ type PetContextValue = {
   setDropFrequency: (seconds: number) => void;
   setEquippedItem: (name: string) => void;
   addMemoryLog: (content: string, date?: string) => void;
-  feedPet: (foodLabel: string, hungerAmount?: number) => void;
+  feedPet: (foodLabel: string, hungerAmount?: number, energyAmount?: number) => void;
   patchPet: (
     patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
   ) => void;
@@ -189,21 +189,26 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const feedPet = useCallback((foodLabel: string, hungerAmount = 15) => {
-    setPet((prev) => {
-      const hunger = prev.hunger + hungerAmount;
-      const xp = prev.xp + 10;
+  const feedPet = useCallback(
+    (foodLabel: string, hungerAmount = 15, energyAmount = 10) => {
+      setPet((prev) => {
+        const hunger = prev.hunger + hungerAmount;
+        const energy = prev.energy + energyAmount;
+        const xp = prev.xp + 10;
 
-      return clampPet({
-        ...prev,
-        hunger,
-        xp,
-        lastFoodEaten: foodLabel,
-        moodState: computeMoodState(hunger, prev.energy),
-        lastUpdated: new Date().toISOString(),
+        return clampPet({
+          ...prev,
+          hunger,
+          energy,
+          xp,
+          lastFoodEaten: foodLabel,
+          moodState: computeMoodState(hunger, energy),
+          lastUpdated: new Date().toISOString(),
+        });
       });
-    });
-  }, []);
+    },
+    []
+  );
 
   const patchPet = useCallback(
     (

@@ -1,5 +1,5 @@
-import DiscountMap from "@/components/discount-map/DiscountMap";
+import MapArea from "@/components/MapArea";
 
 export default function MapPage() {
-  return <DiscountMap />;
+  return <MapArea />;
 }

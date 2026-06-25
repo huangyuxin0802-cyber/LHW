@@ -4,7 +4,7 @@ import { usePet } from "@/components/PetProvider";
 import PetAssistant from "@/components/PetAssistant";
 import PetDashboard from "@/components/PetDashboard";
 import WeatherWidget from "@/components/WeatherWidget";
-import DiscountMap from "@/components/discount-map/DiscountMap";
+import MapArea from "@/components/MapArea";
 import {
   formatEnvironmentLabel,
   type BrisbaneEnvironment,
@@ -260,7 +260,7 @@ export default function ChatArea() {
                     </button>
                   </div>
                   <div className="min-h-0 flex-1">
-                    <DiscountMap city={mapCity} />
+                    <MapArea city={mapCity} embedded />
                   </div>
                 </motion.div>
               ) : (
@@ -389,7 +389,7 @@ export default function ChatArea() {
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden">
-                <DiscountMap city={mapCity} />
+                <MapArea city={mapCity} embedded />
               </div>
             </motion.div>
           </>
