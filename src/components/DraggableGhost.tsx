@@ -86,14 +86,14 @@ export default function DraggableGhost() {
     }
 
     const text = error.message;
-    if (text.includes("配额已用完") || text.toLowerCase().includes("quota")) {
-      return text;
+    if (text.includes("GROQ_API_KEY")) {
+      return "Groq API Key 未配置。请在 Vercel 环境变量添加 GROQ_API_KEY。";
     }
-    if (text.includes("GOOGLE_GENERATIVE_AI_API_KEY")) {
-      return "Gemini API Key 未配置。请在 Vercel 环境变量添加 GOOGLE_GENERATIVE_AI_API_KEY。";
+    if (/rate limit|429|quota/i.test(text)) {
+      return text.includes("Groq") ? text : "Groq API 请求过快，请稍后再试。";
     }
-    if (text.includes("API key not valid") || text.includes("401")) {
-      return "Gemini API Key 无效。请到 aistudio.google.com/apikey 重新生成（一般以 AIza 开头）。";
+    if (/invalid.*api.*key|401|403|unauthorized/i.test(text)) {
+      return "Groq API Key 无效。请到 console.groq.com 检查。";
     }
 
     return text || "小幽灵连接失败，请稍后再试。";

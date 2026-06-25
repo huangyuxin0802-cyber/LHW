@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
 import { getErrorMessage } from "@ai-sdk/provider";
 import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
@@ -9,28 +9,27 @@ export const dynamic = "force-dynamic";
 const SYSTEM_PROMPT =
   "你是一个栖息在网站里的小幽灵助手 (Ghost)。你的性格调皮、机敏。回答问题必须极其简短、一针见血，绝不废话（控制在1-2句话内）。当前系统时间是 2026年6月25日（布里斯班时间），请根据此时间解析用户的相对时间指令。";
 
-function getGeminiProvider() {
-  const apiKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+function getGroqProvider() {
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "未配置 GOOGLE_GENERATIVE_AI_API_KEY。请在 Vercel / .env.local 添加 Gemini API Key。"
+      "未配置 GROQ_API_KEY。请在 Vercel / .env.local 添加 Groq API Key。"
     );
   }
 
-  return createGoogleGenerativeAI({ apiKey });
+  return createGroq({ apiKey });
 }
 
 function formatChatError(error: unknown): string {
   const msg = getErrorMessage(error);
 
-  if (/quota|exceeded your current/i.test(msg)) {
-    return "Gemini API 配额已用完。请到 Google AI Studio 检查账单/配额，或换一个新的 API Key。";
+  if (/rate limit|429|quota/i.test(msg)) {
+    return "Groq API 请求过快或配额已满，请稍后再试。";
   }
 
-  if (/API key not valid|401|403|permission/i.test(msg)) {
-    return "Gemini API Key 无效或未授权。请到 aistudio.google.com/apikey 重新生成。";
+  if (/invalid.*api.*key|401|403|unauthorized/i.test(msg)) {
+    return "Groq API Key 无效或未授权。请到 console.groq.com 检查 Key。";
   }
 
   return `小幽灵连接失败：${msg.slice(0, 160)}`;
@@ -39,10 +38,10 @@ function formatChatError(error: unknown): string {
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
-    const google = getGeminiProvider();
+    const groq = getGroqProvider();
 
     const result = streamText({
-      model: google("gemini-2.0-flash"),
+      model: groq("llama-3.3-70b-versatile"),
       system: SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages),
       tools: {
@@ -78,9 +77,7 @@ export async function POST(req: Request) {
     console.error("[chat]", error);
 
     const message =
-      error instanceof Error
-        ? error.message
-        : "小幽灵暂时无法连接 Gemini";
+      error instanceof Error ? error.message : "小幽灵暂时无法连接 Groq";
 
     return new Response(
       JSON.stringify({
