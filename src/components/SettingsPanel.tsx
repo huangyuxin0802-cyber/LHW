@@ -1,9 +1,11 @@
 "use client";
 
 import { usePet } from "@/components/PetProvider";
+import PetDashboard from "@/components/PetDashboard";
 import { useTheme } from "@/components/ThemeProvider";
 import { PET_AVATARS, PET_PERSONALITIES, type PetMoodState } from "@/types/pet";
 import { ui } from "@/lib/ui";
+import { useState } from "react";
 
 const MOOD_LABELS: Record<PetMoodState, string> = {
   happy: "开心 😊",
@@ -52,6 +54,7 @@ function StatBar({
 export default function SettingsPanel() {
   const { theme, toggleTheme } = useTheme();
   const { pet, setPersonality, setAvatar, setDropFrequency } = usePet();
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const isStriking = pet.hunger < 20;
 
   return (
@@ -222,9 +225,22 @@ export default function SettingsPanel() {
               <StatBar label="Hunger 饥饿" value={pet.hunger} tone="amber" />
               <StatBar label="Energy 精力" value={pet.energy} tone="sky" />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setDashboardOpen(true)}
+              className="w-full rounded-2xl border border-violet-300/30 bg-violet-500/10 px-4 py-3 text-[14px] font-medium text-violet-700 transition hover:bg-violet-500/15 dark:text-violet-200"
+            >
+              打开战利品柜与记忆日记本
+            </button>
           </div>
         </div>
       </div>
+
+      <PetDashboard
+        open={dashboardOpen}
+        onClose={() => setDashboardOpen(false)}
+      />
     </section>
   );
 }

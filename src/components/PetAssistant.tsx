@@ -1,6 +1,12 @@
 "use client";
 
 import { usePet } from "@/components/PetProvider";
+import {
+  formatEnvironmentLabel,
+  getBrisbaneEnvironment,
+  type BrisbaneEnvironment,
+} from "@/lib/environment";
+import { getTrophyByName } from "@/lib/pet-trophies";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
@@ -24,6 +30,7 @@ const EATING_REACTIONS = [
   "吧唧吧唧...再来一块！",
   "满血复活！汪！",
   "摇尾巴~ 最喜欢你了！",
+  "这味道我记住了!",
 ];
 const LONG_PRESS_MS = 800;
 
@@ -51,6 +58,7 @@ const EASTER_EGGS: EasterEgg[] = [
 
 type GhostAnimState =
   | "idle"
+  | "sleepy_idle"
   | "starving_idle"
   | "tired_idle"
   | "eating"
@@ -195,7 +203,14 @@ function randomDropX() {
   return margin + Math.random() * (window.innerWidth - margin * 2);
 }
 
-function resolveIdleVariant(hunger: number, energy: number): GhostAnimState {
+function resolveIdleVariant(
+  hunger: number,
+  energy: number,
+  isSleepy: boolean
+): GhostAnimState {
+  if (isSleepy) {
+    return "sleepy_idle";
+  }
   if (hunger < 20) {
     return "starving_idle";
   }
@@ -206,7 +221,12 @@ function resolveIdleVariant(hunger: number, energy: number): GhostAnimState {
 }
 
 function isPassiveAnimState(state: GhostAnimState) {
-  return state === "idle" || state === "starving_idle" || state === "tired_idle";
+  return (
+    state === "idle" ||
+    state === "sleepy_idle" ||
+    state === "starving_idle" ||
+    state === "tired_idle"
+  );
 }
 
 const passiveVariants: Variants = {
@@ -256,6 +276,20 @@ const passiveVariants: Variants = {
       ease: "easeInOut",
     },
   },
+  sleepy_idle: {
+    y: [0, 1, 0, 2, 0],
+    rotate: [0, 3, 0, 3, 0],
+    scale: [1, 0.98, 1, 0.98, 1],
+    scaleX: 1,
+    scaleY: 1,
+    x: 0,
+    opacity: [0.95, 0.88, 0.95],
+    transition: {
+      duration: 2.8,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
   eating: {
     y: 0,
     x: 0,
@@ -281,13 +315,21 @@ const passiveVariants: Variants = {
 export type PetAssistantProps = {
   mode?: "home" | "floating";
   className?: string;
+  isThinking?: boolean;
+  isSearching?: boolean;
+  environment?: BrisbaneEnvironment | null;
+  onSearchComplete?: () => void;
 };
 
 export default function PetAssistant({
   mode = "floating",
   className,
+  isThinking = false,
+  isSearching = false,
+  environment: environmentProp,
+  onSearchComplete,
 }: PetAssistantProps) {
-  const { pet, feedPet, hydrated } = usePet();
+  const { pet, feedPet, hydrated, addMemoryLog } = usePet();
   const petRef = useRef(pet);
   petRef.current = pet;
 
@@ -303,6 +345,8 @@ export default function PetAssistant({
   const trickResetTimerRef = useRef<number | null>(null);
   const ghostAnimStateRef = useRef<GhostAnimState>("idle");
   const trickLockedRef = useRef(false);
+  const searchingInFlightRef = useRef(false);
+  const rememberedToolCallsRef = useRef<Set<string>>(new Set());
   const foodLabelByIdRef = useRef<Map<string, string>>(new Map());
   const electricFlashTimerRef = useRef<number | null>(null);
   const innerControls = useAnimationControls();
@@ -322,9 +366,34 @@ export default function PetAssistant({
   const [electricFlash, setElectricFlash] = useState<"yellow" | "cyan">(
     "yellow"
   );
+  const [resolvedEnvironment, setResolvedEnvironment] =
+    useState<BrisbaneEnvironment | null>(environmentProp ?? null);
 
   const isHome = mode === "home";
   const theme = getAvatarTheme(pet.avatar);
+  const activeEnvironment =
+    environmentProp === undefined ? resolvedEnvironment : environmentProp;
+  const environmentLabels = activeEnvironment
+    ? formatEnvironmentLabel(activeEnvironment)
+    : null;
+  const isSleepyByEnvironment = Boolean(activeEnvironment?.isSleepy);
+  const isRaining = activeEnvironment?.weather === "raining";
+  const equippedTrophy = pet.equippedItem
+    ? getTrophyByName(pet.equippedItem)
+    : null;
+  const equippedEmoji = equippedTrophy?.emoji;
+  const rainOverlayEmoji = isRaining
+    ? pet.equippedItem === "雨衣"
+      ? "🧥"
+      : "☂️"
+    : null;
+  const thinkingBubble = isThinking ? "正在大街小巷到处闻... 嗅嗅..." : null;
+  const activeEnvironmentRef = useRef<BrisbaneEnvironment | null>(
+    activeEnvironment
+  );
+  const environmentLabelsRef = useRef(environmentLabels);
+  activeEnvironmentRef.current = activeEnvironment;
+  environmentLabelsRef.current = environmentLabels;
 
   ghostAnimStateRef.current = ghostAnimState;
   trickLockedRef.current = trickLocked;
@@ -338,8 +407,17 @@ export default function PetAssistant({
           hunger: petRef.current.hunger,
           energy: petRef.current.energy,
           level: petRef.current.loginDays,
+          login_days: petRef.current.loginDays,
           last_food_eaten: petRef.current.lastFoodEaten,
           mood_state: petRef.current.moodState,
+          memory_logs: petRef.current.memoryLogs,
+          environment: activeEnvironmentRef.current
+            ? {
+                ...environmentLabelsRef.current,
+                isSleepy: activeEnvironmentRef.current.isSleepy,
+                hour: activeEnvironmentRef.current.hour,
+              }
+            : undefined,
         }),
       }),
     []
@@ -390,12 +468,13 @@ export default function PetAssistant({
   const resumePassiveAnim = useCallback(() => {
     const next = resolveIdleVariant(
       petRef.current.hunger,
-      petRef.current.energy
+      petRef.current.energy,
+      isSleepyByEnvironment
     );
     setGhostAnimState(next);
     resetInnerTransform();
     void innerControls.start(next);
-  }, [innerControls, resetInnerTransform]);
+  }, [innerControls, isSleepyByEnvironment, resetInnerTransform]);
 
   const resetTrick = useCallback(() => {
     if (trickResetTimerRef.current) {
@@ -714,6 +793,24 @@ export default function PetAssistant({
   }, []);
 
   useEffect(() => {
+    if (environmentProp !== undefined) {
+      setResolvedEnvironment(environmentProp);
+      return;
+    }
+
+    let cancelled = false;
+    void getBrisbaneEnvironment().then((env) => {
+      if (!cancelled) {
+        setResolvedEnvironment(env);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [environmentProp]);
+
+  useEffect(() => {
     if (!mounted || !hydrated) {
       return;
     }
@@ -779,13 +876,123 @@ export default function PetAssistant({
   }, [messages, isLoading]);
 
   useEffect(() => {
-    if (!isPassiveAnimState(ghostAnimStateRef.current) || trickLockedRef.current) {
+    const assistantMessages = messages.filter((message) => message.role === "assistant");
+    for (const message of assistantMessages) {
+      for (const part of message.parts) {
+        if (part.type !== "tool-remember_preference") {
+          continue;
+        }
+        if (part.state !== "output-available") {
+          continue;
+        }
+        if (rememberedToolCallsRef.current.has(part.toolCallId)) {
+          continue;
+        }
+
+        const output =
+          typeof part.output === "object" && part.output !== null
+            ? (part.output as { content?: string; savedAt?: string })
+            : null;
+        const input =
+          typeof part.input === "object" && part.input !== null
+            ? (part.input as { content?: string })
+            : null;
+        const content = output?.content ?? input?.content ?? "";
+        const savedAt = output?.savedAt;
+
+        if (content.trim()) {
+          addMemoryLog(content, savedAt);
+          rememberedToolCallsRef.current.add(part.toolCallId);
+        }
+      }
+    }
+  }, [addMemoryLog, messages]);
+
+  useEffect(() => {
+    if (!isSearching) {
+      searchingInFlightRef.current = false;
       return;
     }
-    const next = resolveIdleVariant(pet.hunger, pet.energy);
+    if (searchingInFlightRef.current || trickLockedRef.current) {
+      return;
+    }
+
+    searchingInFlightRef.current = true;
+    let cancelled = false;
+
+    const runSearch = async () => {
+      setGhostAnimState("idle");
+      resetInnerTransform();
+      await innerControls.start({
+        x: 1000,
+        transition: { duration: 0.65, ease: "easeIn" },
+      });
+      if (cancelled) return;
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      if (cancelled) return;
+      await innerControls.start({
+        x: 0,
+        transition: { duration: 0.65, ease: "easeOut" },
+      });
+      if (cancelled) return;
+      onSearchComplete?.();
+      if (!isThinking) {
+        resumePassiveAnim();
+      }
+    };
+
+    void runSearch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    innerControls,
+    isSearching,
+    isThinking,
+    onSearchComplete,
+    resetInnerTransform,
+    resumePassiveAnim,
+  ]);
+
+  useEffect(() => {
+    if (!isThinking || isSearching || trickLockedRef.current) {
+      return;
+    }
+
+    setGhostAnimState("idle");
+    void innerControls.start({
+      x: [0, -3, 3, -2, 2, 0],
+      rotate: [0, -6, 6, -5, 5, 0],
+      transition: { duration: 0.9, repeat: Infinity, ease: "easeInOut" },
+    });
+  }, [innerControls, isSearching, isThinking]);
+
+  useEffect(() => {
+    if (isSearching || isThinking) {
+      return;
+    }
+    if (
+      !isPassiveAnimState(ghostAnimStateRef.current) ||
+      trickLockedRef.current
+    ) {
+      return;
+    }
+    const next = resolveIdleVariant(
+      pet.hunger,
+      pet.energy,
+      isSleepyByEnvironment
+    );
     setGhostAnimState(next);
     void innerControls.start(next);
-  }, [pet.hunger, pet.energy, innerControls]);
+  }, [
+    pet.hunger,
+    pet.energy,
+    isSearching,
+    isSleepyByEnvironment,
+    isThinking,
+    innerControls,
+  ]);
 
   useEffect(() => {
     if (!mounted || !hydrated) return;
@@ -812,7 +1019,7 @@ export default function PetAssistant({
     return text || "小幽灵连接失败，请稍后再试。";
   }, [error]);
 
-  const bubbleText = eatBubble ?? trickBubble ?? idleBubble;
+  const bubbleText = eatBubble ?? trickBubble ?? thinkingBubble ?? idleBubble;
 
   if (!mounted) {
     return null;
@@ -892,6 +1099,19 @@ export default function PetAssistant({
           }`}
         >
           {isStriking ? "罢工" : "饿"}
+        </span>
+      )}
+      {rainOverlayEmoji && (
+        <span className="absolute -left-1 -top-2 text-base">{rainOverlayEmoji}</span>
+      )}
+      {isSearching && (
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-base">
+          🕵️‍♂️
+        </span>
+      )}
+      {equippedEmoji && (
+        <span className="absolute -right-1 -bottom-2 text-base">
+          {equippedEmoji}
         </span>
       )}
       <span
@@ -985,9 +1205,16 @@ export default function PetAssistant({
           drag={
             isPassiveAnimState(ghostAnimState) && !isSleeping && !trickLocked
           }
-          dragMomentum={false}
+          dragMomentum={true}
+          dragTransition={{
+            power: 0.2,
+            timeConstant: 250,
+            bounceStiffness: 300,
+            bounceDamping: 15,
+          }}
           dragElastic={0.1}
           dragConstraints={constraintsRef}
+          whileDrag={{ scale: 1.15, rotate: 5, cursor: "grabbing" }}
           className="pointer-events-auto absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
           onDragStart={() => {
             dragMovedRef.current = true;
@@ -1031,6 +1258,11 @@ export default function PetAssistant({
                     <p className="text-[11px] text-zinc-500">
                       饥饿 {pet.hunger} · 精力 {pet.energy}
                     </p>
+                    {environmentLabels && (
+                      <p className="text-[11px] text-zinc-500">
+                        {environmentLabels.timeOfDay} · {environmentLabels.weather}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"

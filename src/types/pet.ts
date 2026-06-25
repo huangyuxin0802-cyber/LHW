@@ -19,6 +19,18 @@ export type PetPersonality = (typeof PET_PERSONALITIES)[number];
 export type PetMoodState = (typeof PET_MOOD_STATES)[number];
 export type PetAvatar = (typeof PET_AVATARS)[number];
 
+export type MemoryLogEntry = {
+  date: string;
+  content: string;
+};
+
+export type BackpackItem = {
+  id: string;
+  name: string;
+  emoji: string;
+  collectedAt: string;
+};
+
 export type PetStatus = {
   id?: string;
   personality: PetPersonality;
@@ -32,8 +44,18 @@ export type PetStatus = {
   dropFrequency: number;
   lastFoodEaten: string;
   moodState: PetMoodState;
+  memoryLogs: MemoryLogEntry[];
+  backpack: BackpackItem[];
+  equippedItem: string;
   lastUpdated: string;
 };
+
+export const DEFAULT_MEMORY_LOGS: MemoryLogEntry[] = [
+  {
+    date: "2026-06-25",
+    content: "主人说他最喜欢吃绿咖喱和牛腩",
+  },
+];
 
 export const DEFAULT_PET_STATUS: PetStatus = {
   personality: "调皮捣蛋",
@@ -47,6 +69,9 @@ export const DEFAULT_PET_STATUS: PetStatus = {
   dropFrequency: 30,
   lastFoodEaten: "",
   moodState: "happy",
+  memoryLogs: DEFAULT_MEMORY_LOGS,
+  backpack: [],
+  equippedItem: "",
   lastUpdated: new Date().toISOString(),
 };
 

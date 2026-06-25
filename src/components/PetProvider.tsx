@@ -13,12 +13,17 @@ import {
   applyOfflineDecay,
   clampPet,
   computeMoodState,
+  getTodayDateKey,
   loadPetFromStorage,
   loadPetFromSupabase,
   savePetToStorage,
   savePetToSupabase,
 } from "@/lib/pet-status";
-import type { PetAvatar, PetPersonality, PetStatus } from "@/types/pet";
+import type {
+  PetAvatar,
+  PetPersonality,
+  PetStatus,
+} from "@/types/pet";
 
 type PetContextValue = {
   pet: PetStatus;
@@ -26,6 +31,8 @@ type PetContextValue = {
   setPersonality: (personality: PetPersonality) => void;
   setAvatar: (avatar: PetAvatar) => void;
   setDropFrequency: (seconds: number) => void;
+  setEquippedItem: (name: string) => void;
+  addMemoryLog: (content: string, date?: string) => void;
   feedPet: (foodLabel: string, hungerAmount?: number) => void;
   patchPet: (
     patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
@@ -57,6 +64,14 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
               energy: Math.min(local.energy, remote.energy),
               xp: Math.max(local.xp, remote.xp),
               loginDays: Math.max(local.loginDays, remote.loginDays),
+              memoryLogs:
+                remote.memoryLogs.length >= local.memoryLogs.length
+                  ? remote.memoryLogs
+                  : local.memoryLogs,
+              backpack:
+                remote.backpack.length >= local.backpack.length
+                  ? remote.backpack
+                  : local.backpack,
             })
           )
         );
@@ -139,6 +154,41 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const setEquippedItem = useCallback((name: string) => {
+    setPet((prev) =>
+      clampPet({
+        ...prev,
+        equippedItem: prev.equippedItem === name ? "" : name,
+        lastUpdated: new Date().toISOString(),
+      })
+    );
+  }, []);
+
+  const addMemoryLog = useCallback((content: string, date = getTodayDateKey()) => {
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setPet((prev) => {
+      const exists = prev.memoryLogs.some(
+        (log) => log.date === date && log.content === trimmed
+      );
+      if (exists) {
+        return prev;
+      }
+
+      return clampPet({
+        ...prev,
+        memoryLogs: [{ date, content: trimmed }, ...prev.memoryLogs].slice(
+          0,
+          50
+        ),
+        lastUpdated: new Date().toISOString(),
+      });
+    });
+  }, []);
+
   const feedPet = useCallback((foodLabel: string, hungerAmount = 15) => {
     setPet((prev) => {
       const hunger = prev.hunger + hungerAmount;
@@ -181,10 +231,22 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       setPersonality,
       setAvatar,
       setDropFrequency,
+      setEquippedItem,
+      addMemoryLog,
       feedPet,
       patchPet,
     }),
-    [pet, hydrated, setPersonality, setAvatar, setDropFrequency, feedPet, patchPet]
+    [
+      pet,
+      hydrated,
+      setPersonality,
+      setAvatar,
+      setDropFrequency,
+      setEquippedItem,
+      addMemoryLog,
+      feedPet,
+      patchPet,
+    ]
   );
 
   return <PetContext.Provider value={value}>{children}</PetContext.Provider>;

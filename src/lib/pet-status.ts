@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/client";
+import { getTrophyById, getUnlockedTrophyIds } from "@/lib/pet-trophies";
 import {
+  DEFAULT_MEMORY_LOGS,
   DEFAULT_PET_STATUS,
   PET_AVATARS,
   PET_MOOD_STATES,
   PET_PERSONALITIES,
   PET_STORAGE_KEY,
+  type BackpackItem,
+  type MemoryLogEntry,
   type PetAvatar,
   type PetMoodState,
   type PetPersonality,
@@ -38,6 +42,58 @@ export function isPetPersonality(value: string): value is PetPersonality {
   return (PET_PERSONALITIES as readonly string[]).includes(value);
 }
 
+function parseMemoryLogs(value: unknown): MemoryLogEntry[] {
+  if (!Array.isArray(value)) {
+    return DEFAULT_MEMORY_LOGS;
+  }
+
+  const logs = value
+    .map((item) => {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "date" in item &&
+        "content" in item
+      ) {
+        return {
+          date: String((item as MemoryLogEntry).date),
+          content: String((item as MemoryLogEntry).content),
+        };
+      }
+      return null;
+    })
+    .filter((item): item is MemoryLogEntry => Boolean(item));
+
+  return logs.length > 0 ? logs : DEFAULT_MEMORY_LOGS;
+}
+
+function parseBackpack(value: unknown): BackpackItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "id" in item &&
+        "name" in item
+      ) {
+        return {
+          id: String((item as BackpackItem).id),
+          name: String((item as BackpackItem).name),
+          emoji: String((item as BackpackItem).emoji ?? "🎁"),
+          collectedAt: String(
+            (item as BackpackItem).collectedAt ?? new Date().toISOString()
+          ),
+        };
+      }
+      return null;
+    })
+    .filter((item): item is BackpackItem => Boolean(item));
+}
+
 export function computeMoodState(hunger: number, energy: number): PetMoodState {
   if (hunger < 20) return "starving";
   if (hunger < 40) return "angry";
@@ -46,20 +102,55 @@ export function computeMoodState(hunger: number, energy: number): PetMoodState {
   return "neutral";
 }
 
-export function applyDailyLogin(pet: PetStatus, today = getTodayDateKey()): PetStatus {
-  if (pet.lastLoginDate === today) {
-    return clampPet({ ...pet, level: Math.max(1, pet.loginDays) });
+export function syncBackpackWithLoginDays(pet: PetStatus): PetStatus {
+  const unlockedIds = getUnlockedTrophyIds(pet.loginDays);
+  const existingIds = new Set(pet.backpack.map((item) => item.id));
+  const additions: BackpackItem[] = [];
+
+  for (const id of unlockedIds) {
+    if (existingIds.has(id)) {
+      continue;
+    }
+
+    const trophy = getTrophyById(id);
+    if (!trophy) {
+      continue;
+    }
+
+    additions.push({
+      id: trophy.id,
+      name: trophy.name,
+      emoji: trophy.emoji,
+      collectedAt: new Date().toISOString(),
+    });
   }
 
-  const loginDays = pet.lastLoginDate ? pet.loginDays + 1 : pet.loginDays;
+  if (additions.length === 0) {
+    return pet;
+  }
 
-  return clampPet({
+  return {
     ...pet,
-    loginDays,
-    lastLoginDate: today,
-    level: loginDays,
-    lastUpdated: new Date().toISOString(),
-  });
+    backpack: [...pet.backpack, ...additions],
+  };
+}
+
+export function applyDailyLogin(pet: PetStatus, today = getTodayDateKey()): PetStatus {
+  let next = pet;
+
+  if (pet.lastLoginDate !== today) {
+    const loginDays = pet.lastLoginDate ? pet.loginDays + 1 : pet.loginDays;
+
+    next = {
+      ...pet,
+      loginDays,
+      lastLoginDate: today,
+      level: loginDays,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  return clampPet(syncBackpackWithLoginDays(next));
 }
 
 export function clampPet(pet: PetStatus): PetStatus {
@@ -68,7 +159,7 @@ export function clampPet(pet: PetStatus): PetStatus {
   const xp = Math.max(0, Math.round(pet.xp));
   const loginDays = Math.max(1, Math.round(pet.loginDays));
 
-  return {
+  return syncBackpackWithLoginDays({
     ...pet,
     hunger,
     energy,
@@ -82,11 +173,14 @@ export function clampPet(pet: PetStatus): PetStatus {
       : DEFAULT_PET_STATUS.personality,
     lastFoodEaten: pet.lastFoodEaten ?? "",
     lastLoginDate: pet.lastLoginDate ?? "",
+    memoryLogs: parseMemoryLogs(pet.memoryLogs),
+    backpack: parseBackpack(pet.backpack),
+    equippedItem: pet.equippedItem ?? "",
     moodState: isPetMoodState(pet.moodState)
       ? pet.moodState
       : computeMoodState(hunger, energy),
     lastUpdated: pet.lastUpdated || new Date().toISOString(),
-  };
+  });
 }
 
 function mapRowToPet(data: {
@@ -102,6 +196,9 @@ function mapRowToPet(data: {
   drop_frequency?: number | null;
   last_food_eaten?: string | null;
   mood_state?: string | null;
+  memory_logs?: unknown;
+  backpack?: unknown;
+  equipped_item?: string | null;
   last_updated: string;
 }): PetStatus {
   const loginDays = data.login_days ?? data.level ?? 1;
@@ -124,6 +221,9 @@ function mapRowToPet(data: {
     lastLoginDate: data.last_login_date ?? "",
     dropFrequency: data.drop_frequency ?? 30,
     lastFoodEaten: data.last_food_eaten ?? "",
+    memoryLogs: parseMemoryLogs(data.memory_logs),
+    backpack: parseBackpack(data.backpack),
+    equippedItem: data.equipped_item ?? "",
     moodState: isPetMoodState(moodRaw)
       ? moodRaw
       : computeMoodState(data.hunger, data.energy),
@@ -149,6 +249,8 @@ export function loadPetFromStorage(): PetStatus {
         login_days?: number;
         last_login_date?: string;
         drop_frequency?: number;
+        memory_logs?: MemoryLogEntry[];
+        equipped_item?: string;
       }
     >;
 
@@ -173,6 +275,9 @@ export function loadPetFromStorage(): PetStatus {
         parsed.lastFoodEaten ??
         parsed.last_food_eaten ??
         DEFAULT_PET_STATUS.lastFoodEaten,
+      memoryLogs: parseMemoryLogs(parsed.memoryLogs ?? parsed.memory_logs),
+      backpack: parseBackpack(parsed.backpack),
+      equippedItem: parsed.equippedItem ?? parsed.equipped_item ?? "",
       moodState: isPetMoodState(moodRaw)
         ? moodRaw
         : computeMoodState(
@@ -207,7 +312,7 @@ export async function loadPetFromSupabase(): Promise<PetStatus | null> {
   const { data, error } = await supabase
     .from("pet_status")
     .select(
-      "id, personality, avatar, hunger, energy, xp, level, login_days, last_login_date, drop_frequency, last_food_eaten, mood_state, last_updated"
+      "id, personality, avatar, hunger, energy, xp, level, login_days, last_login_date, drop_frequency, last_food_eaten, mood_state, memory_logs, backpack, equipped_item, last_updated"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -246,6 +351,9 @@ export async function savePetToSupabase(pet: PetStatus) {
       drop_frequency: payload.dropFrequency,
       last_food_eaten: payload.lastFoodEaten || null,
       mood_state: payload.moodState,
+      memory_logs: payload.memoryLogs,
+      backpack: payload.backpack,
+      equipped_item: payload.equippedItem || null,
       last_updated: payload.lastUpdated,
     },
     { onConflict: "user_id" }
