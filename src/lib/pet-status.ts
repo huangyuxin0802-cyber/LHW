@@ -176,6 +176,7 @@ export function clampPet(pet: PetStatus): PetStatus {
     memoryLogs: parseMemoryLogs(pet.memoryLogs),
     backpack: parseBackpack(pet.backpack),
     equippedItem: pet.equippedItem ?? "",
+    lastScavengerAt: pet.lastScavengerAt ?? "",
     moodState: isPetMoodState(pet.moodState)
       ? pet.moodState
       : computeMoodState(hunger, energy),
@@ -278,6 +279,7 @@ export function loadPetFromStorage(): PetStatus {
       memoryLogs: parseMemoryLogs(parsed.memoryLogs ?? parsed.memory_logs),
       backpack: parseBackpack(parsed.backpack),
       equippedItem: parsed.equippedItem ?? parsed.equipped_item ?? "",
+      lastScavengerAt: parsed.lastScavengerAt ?? "",
       moodState: isPetMoodState(moodRaw)
         ? moodRaw
         : computeMoodState(

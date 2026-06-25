@@ -19,6 +19,12 @@ import {
   savePetToStorage,
   savePetToSupabase,
 } from "@/lib/pet-status";
+import {
+  createScavengerRewardPatch,
+  CYBER_SCAVENGER_COUPON_ID,
+  hasScavengerCoupon,
+  shouldTriggerCyberScavenger,
+} from "@/lib/cyber-scavenging";
 import type {
   PetAvatar,
   PetPersonality,
@@ -33,7 +39,10 @@ type PetContextValue = {
   setDropFrequency: (seconds: number) => void;
   setEquippedItem: (name: string) => void;
   addMemoryLog: (content: string, date?: string) => void;
+  wakePet: () => void;
   feedPet: (foodLabel: string, hungerAmount?: number, energyAmount?: number) => void;
+  scavengerPending: boolean;
+  claimCyberScavengerReward: () => void;
   patchPet: (
     patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
   ) => void;
@@ -44,18 +53,24 @@ const PetContext = createContext<PetContextValue | null>(null);
 export function PetProvider({ children }: { children: React.ReactNode }) {
   const [pet, setPet] = useState<PetStatus>(() => loadPetFromStorage());
   const [hydrated, setHydrated] = useState(false);
+  const [scavengerPending, setScavengerPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function hydrate() {
-      const local = applyDailyLogin(applyOfflineDecay(loadPetFromStorage()));
+      const rawLocal = loadPetFromStorage();
+      const pendingLocal = shouldTriggerCyberScavenger(rawLocal);
+
+      const local = applyDailyLogin(applyOfflineDecay(rawLocal));
       if (!cancelled) {
         setPet(local);
+        setScavengerPending(pendingLocal);
       }
 
       const remote = await loadPetFromSupabase();
       if (!cancelled && remote) {
+        const pendingRemote = shouldTriggerCyberScavenger(remote);
         const merged = applyDailyLogin(
           applyOfflineDecay(
             clampPet({
@@ -76,8 +91,12 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
           )
         );
         setPet(merged);
+        setScavengerPending(
+          (pendingLocal || pendingRemote) && !hasScavengerCoupon(merged)
+        );
       } else if (!cancelled) {
         setPet((prev) => applyDailyLogin(prev));
+        setScavengerPending(pendingLocal && !hasScavengerCoupon(local));
       }
 
       if (!cancelled) {
@@ -189,6 +208,18 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const wakePet = useCallback(() => {
+    setPet((prev) => {
+      const energy = Math.max(35, prev.energy);
+      return clampPet({
+        ...prev,
+        energy,
+        moodState: computeMoodState(prev.hunger, energy),
+        lastUpdated: new Date().toISOString(),
+      });
+    });
+  }, []);
+
   const feedPet = useCallback(
     (foodLabel: string, hungerAmount = 15, energyAmount = 10) => {
       setPet((prev) => {
@@ -209,6 +240,30 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+
+  const claimCyberScavengerReward = useCallback(() => {
+    const patch = createScavengerRewardPatch();
+
+    setPet((prev) => {
+      if (prev.backpack.some((item) => item.id === CYBER_SCAVENGER_COUPON_ID)) {
+        return clampPet({
+          ...prev,
+          lastLoginDate: patch.lastLoginDate,
+          lastScavengerAt: patch.lastScavengerAt,
+          lastUpdated: patch.lastUpdated,
+        });
+      }
+
+      return clampPet({
+        ...prev,
+        lastLoginDate: patch.lastLoginDate,
+        lastScavengerAt: patch.lastScavengerAt,
+        lastUpdated: patch.lastUpdated,
+        backpack: [...prev.backpack, patch.coupon],
+      });
+    });
+    setScavengerPending(false);
+  }, []);
 
   const patchPet = useCallback(
     (
@@ -238,7 +293,10 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       setDropFrequency,
       setEquippedItem,
       addMemoryLog,
+      wakePet,
       feedPet,
+      scavengerPending,
+      claimCyberScavengerReward,
       patchPet,
     }),
     [
@@ -249,7 +307,10 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       setDropFrequency,
       setEquippedItem,
       addMemoryLog,
+      wakePet,
       feedPet,
+      scavengerPending,
+      claimCyberScavengerReward,
       patchPet,
     ]
   );

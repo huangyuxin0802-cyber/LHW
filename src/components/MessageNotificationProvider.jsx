@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const AUTO_DISMISS_MS = 8000;
 const MAX_TOASTS = 3;
+const POLL_INTERVAL_MS = 8000;
 
 function truncate(text, max = 48) {
   if (text.length <= max) return text;
@@ -70,13 +71,17 @@ export default function MessageNotificationProvider({ userId, children }) {
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   const router = useRouter();
-  const supabaseRef = useRef(null);
   const nameCacheRef = useRef(new Map());
   const timersRef = useRef(new Map());
+  const supabaseRef = useRef(null);
+  const seenMessageIdsRef = useRef(new Set());
+  const pollCursorRef = useRef(null);
 
-  if (!supabaseRef.current) {
-    supabaseRef.current = createClient();
-  }
+  useEffect(() => {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createClient();
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -103,10 +108,16 @@ export default function MessageNotificationProvider({ userId, children }) {
 
   const addToast = useCallback(
     (msg) => {
+      const supabase = supabaseRef.current;
+      if (!supabase) return;
+
       const senderId = msg.sender_id;
       if (msg.recipient_id !== userId) return;
       if (senderId === userId) return;
       if (pathnameRef.current === `/chat/${senderId}`) return;
+      if (seenMessageIdsRef.current.has(msg.id)) return;
+
+      seenMessageIdsRef.current.add(msg.id);
 
       const cachedName = nameCacheRef.current.get(senderId);
       const senderName = cachedName ?? `用户 ${senderId.slice(0, 8)}`;
@@ -130,7 +141,7 @@ export default function MessageNotificationProvider({ userId, children }) {
       timersRef.current.set(msg.id, timer);
 
       if (!cachedName) {
-        void supabaseRef.current
+        void supabase
           .from("profiles")
           .select("username")
           .eq("id", senderId)
@@ -148,52 +159,44 @@ export default function MessageNotificationProvider({ userId, children }) {
   useEffect(() => {
     if (!userId) return;
 
-    const supabase = supabaseRef.current;
-    let channel = null;
+    const supabase = supabaseRef.current ?? createClient();
+    supabaseRef.current = supabase;
+
     let cancelled = false;
+    pollCursorRef.current = new Date().toISOString();
+    seenMessageIdsRef.current = new Set();
 
-    async function subscribeInbox() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    const pollInbox = async () => {
+      if (cancelled) return;
 
-      if (cancelled || !session) return;
+      const cursor = pollCursorRef.current;
+      if (!cursor) return;
 
-      channel = supabase
-        .channel(`inbox-notify-${userId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-          },
-          (payload) => {
-            addToast(payload.new);
-          }
-        )
-        .subscribe();
-    }
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, sender_id, recipient_id, content, created_at")
+        .eq("recipient_id", userId)
+        .gt("created_at", cursor)
+        .order("created_at", { ascending: true })
+        .limit(20);
 
-    void subscribeInbox();
+      if (cancelled || error || !data?.length) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session || cancelled) return;
-      if (channel) {
-        supabase.removeChannel(channel);
-        channel = null;
+      for (const msg of data) {
+        addToast(msg);
+        pollCursorRef.current = msg.created_at;
       }
-      void subscribeInbox();
-    });
+    };
+
+    const intervalId = window.setInterval(() => {
+      void pollInbox();
+    }, POLL_INTERVAL_MS);
+
+    void pollInbox();
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      window.clearInterval(intervalId);
       for (const timer of timersRef.current.values()) {
         clearTimeout(timer);
       }

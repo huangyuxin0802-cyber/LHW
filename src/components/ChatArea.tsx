@@ -1,10 +1,11 @@
 "use client";
 
 import { usePet } from "@/components/PetProvider";
+import AssistantMessageBubble from "@/components/AssistantMessageBubble";
 import PetAssistant from "@/components/PetAssistant";
 import PetDashboard from "@/components/PetDashboard";
 import WeatherWidget from "@/components/WeatherWidget";
-import MapArea from "@/components/MapArea";
+import MapAreaLoader from "@/components/MapAreaLoader";
 import {
   formatEnvironmentLabel,
   type BrisbaneEnvironment,
@@ -14,6 +15,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { BookOpen, MapPin, X } from "lucide-react";
 import Link from "next/link";
+import { useUsername } from "@/hooks/useUsername";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function getAvatarGlow(avatar: "ghost" | "puppy") {
@@ -45,11 +47,15 @@ function isSystemTriggerMessage(message: UIMessage) {
 
 export default function ChatArea() {
   const { pet, addMemoryLog } = usePet();
+  const username = useUsername();
   const petRef = useRef(pet);
   petRef.current = pet;
+  const usernameRef = useRef(username);
+  usernameRef.current = username;
 
   const envRef = useRef<BrisbaneEnvironment | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatFormRef = useRef<HTMLFormElement>(null);
 
   const [hasChatStarted, setHasChatStarted] = useState(false);
   const [input, setInput] = useState("");
@@ -84,6 +90,9 @@ export default function ChatArea() {
             last_food_eaten: petRef.current.lastFoodEaten,
             mood_state: petRef.current.moodState,
             memory_logs: petRef.current.memoryLogs,
+            ...(usernameRef.current
+              ? { user_name: usernameRef.current }
+              : {}),
             environment: env
               ? {
                   ...env,
@@ -166,6 +175,7 @@ export default function ChatArea() {
 
   const inputForm = (
     <motion.form
+      ref={chatFormRef}
       layout
       onSubmit={handleSubmit}
       className={`w-full rounded-[2rem] border bg-white/90 p-2 backdrop-blur-xl dark:bg-zinc-900/90 ${glow} ring-1 ${
@@ -175,6 +185,16 @@ export default function ChatArea() {
       <textarea
         value={input}
         onChange={(event) => setInput(event.target.value)}
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" &&
+            !event.shiftKey &&
+            !event.nativeEvent.isComposing
+          ) {
+            event.preventDefault();
+            chatFormRef.current?.requestSubmit();
+          }
+        }}
         rows={hasChatStarted ? 2 : 3}
         placeholder={
           isStriking
@@ -215,6 +235,7 @@ export default function ChatArea() {
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
         <button
           type="button"
+          data-trophy-room-anchor
           onClick={() => setDashboardOpen(true)}
           className="rounded-full border border-zinc-200/80 bg-white/80 px-4 py-1.5 text-[13px] text-zinc-600 backdrop-blur transition hover:text-zinc-900 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-300"
         >
@@ -259,8 +280,8 @@ export default function ChatArea() {
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="min-h-0 flex-1">
-                    <MapArea city={mapCity} embedded />
+                  <div className="h-[600px] w-full shrink-0 overflow-hidden">
+                    <MapAreaLoader city={mapCity} embedded />
                   </div>
                 </motion.div>
               ) : (
@@ -285,7 +306,11 @@ export default function ChatArea() {
                             : "border border-zinc-200/80 bg-white/90 text-zinc-800 dark:border-white/10 dark:bg-zinc-900/90 dark:text-zinc-100"
                         }`}
                       >
-                        {getMessageText(message.parts)}
+                        {message.role === "assistant" ? (
+                          <AssistantMessageBubble parts={message.parts} />
+                        ) : (
+                          getMessageText(message.parts)
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -388,8 +413,8 @@ export default function ChatArea() {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <MapArea city={mapCity} embedded />
+              <div className="h-[600px] w-full shrink-0 overflow-hidden">
+                <MapAreaLoader city={mapCity} embedded />
               </div>
             </motion.div>
           </>

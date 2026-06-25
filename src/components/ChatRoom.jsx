@@ -40,10 +40,15 @@ export default function ChatRoom({
     initialState
   );
   const bottomRef = useRef(null);
+  const messageFormRef = useRef(null);
   const supabaseRef = useRef(null);
-  if (!supabaseRef.current) {
-    supabaseRef.current = createClient();
-  }
+
+  useEffect(() => {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createClient();
+    }
+  }, []);
+
   const supabase = supabaseRef.current;
 
   useEffect(() => {
@@ -59,6 +64,10 @@ export default function ChatRoom({
   }, [messages]);
 
   useEffect(() => {
+    const supabase = supabaseRef.current ?? createClient();
+    supabaseRef.current = supabase;
+    if (!supabase) return;
+
     const channel = supabase
       .channel(`chat-${currentUserId}-${friendId}`)
       .on(
@@ -80,8 +89,9 @@ export default function ChatRoom({
             return [...prev, msg];
           });
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -141,6 +151,7 @@ export default function ChatRoom({
       </div>
 
       <form
+        ref={messageFormRef}
         action={formAction}
         className={`flex gap-3 border-t px-6 py-4 ${ui.divider}`}
       >
@@ -150,6 +161,12 @@ export default function ChatRoom({
           type="text"
           placeholder="输入消息…"
           autoComplete="off"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              messageFormRef.current?.requestSubmit();
+            }
+          }}
           className={ui.inputSm}
         />
         <button

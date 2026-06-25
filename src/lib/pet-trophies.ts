@@ -49,12 +49,19 @@ export const TROPHY_CATALOG: TrophyDefinition[] = [
     unlockDays: 14,
     description: "累计登录 14 天解锁",
   },
+  {
+    id: "hidden-coupon-50",
+    name: "50% 隐藏券",
+    emoji: "🎫",
+    unlockDays: 0,
+    description: "赛博拾荒稀有掉落",
+  },
 ];
 
 export function getUnlockedTrophyIds(loginDays: number) {
-  return TROPHY_CATALOG.filter((t) => loginDays >= t.unlockDays).map(
-    (t) => t.id
-  );
+  return TROPHY_CATALOG.filter(
+    (t) => t.unlockDays > 0 && loginDays >= t.unlockDays
+  ).map((t) => t.id);
 }
 
 export function getTrophyById(id: string) {

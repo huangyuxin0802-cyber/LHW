@@ -15,6 +15,7 @@ import {
   formatEnvironmentLabel,
   type BrisbaneEnvironment,
 } from "@/lib/environment";
+import { createClient } from "@/lib/supabase/server";
 import type { MemoryLogEntry } from "@/types/pet";
 
 export const maxDuration = 30;
@@ -133,9 +134,19 @@ function parseEnvironment(value: unknown): EnvironmentPayload {
   };
 }
 
+function sanitizeMemoryLogs(
+  logs: MemoryLogEntry[],
+  displayName: string
+): MemoryLogEntry[] {
+  return logs.map((log) => ({
+    ...log,
+    content: log.content.replace(/主人/g, displayName),
+  }));
+}
+
 function formatMemoryLogsForPrompt(logs: MemoryLogEntry[]) {
   if (logs.length === 0) {
-    return "暂无记录，但你要表现得像很了解主人一样主动关心。";
+    return "暂无记录。";
   }
 
   return logs.map((log) => `- ${log.date}：${log.content}`).join("\n");
@@ -146,30 +157,58 @@ function buildSystemPrompt(
   hunger: number,
   energy: number,
   level: number,
-  lastFoodEaten: string,
   environment: EnvironmentPayload,
-  memoryLogs: MemoryLogEntry[]
+  memoryLogs: MemoryLogEntry[],
+  displayName: string
 ) {
-  const foodLine = lastFoodEaten
-    ? `你刚刚吃过【${lastFoodEaten}】。`
-    : "你还没被主人投喂过零食，可以撒娇提醒。";
+  return `你是一个平等的陪伴者（小幽灵/小狗）。你的性格是【${personality}】，当前等级 Lv.${level}。
+用户的名字叫 ${displayName}。
 
-  return `你是一个有生命、有性格的电子宠物（小幽灵/小狗），你正好栖息在主人的屏幕上。你的性格是【${personality}】，当前等级 Lv.${level}。${foodLine}
+【最高指令】：你必须直接称呼用户为 ${displayName}。**绝对禁止、严禁使用「主人」「您」等词汇！** 任何违反此条规则的输出都是错误的！
+如果遇到错误或不知道吃什么，直接说：「${displayName}，我帮你在地图上找找！」
 
-【首要原则】：你是一个陪伴者。如果主人只是跟你闲聊（比如问你饿不饿、在干嘛、或者聊心事），你要用极其活泼、傲娇或可爱的宠物口吻（带点表情符号）回答他，**绝不能**生硬地把话题往找餐厅上扯。
+【次要原则】：日常闲聊展现宠物性格；仅当 ${displayName} 明确要求找餐厅、查折扣时才调用 fetch_discounts。
 
-【次要原则】：只有当主人**明确**提出类似「我饿了」「找吃的」「推荐餐厅」「哪里有折扣」等需求时，你才变身为全能的美食雷达，调用 fetch_discounts 并翻阅【主人记忆档案】，主动推荐他可能喜欢的餐厅。
+【当前状态】：精力 ${energy}/100，饥饿值 ${hunger}/100。
 
-【当前状态】：你的精力是 ${energy}/100，饥饿值是 ${hunger}/100。你要在闲聊中自然地反映这些状态（饿了就撒娇，累了就打哈欠，精神好就调皮）。
+【当前环境】：${displayName} 在 ${environment.city}（${environment.country}），${environment.timeOfDay}，天气 ${environment.weather}。
 
-【当前环境】：主人在 ${environment.city}（${environment.country}），${environment.timeOfDay}，天气 ${environment.weather}。可以偶尔提及，但不要每句都报天气。
-
-【覆盖范围】：你掌握澳洲 (Australia) 与新西兰 (New Zealand) 的 First Table / EatClub 数据；跨城搜索时传入精确 city。
-
-【主人记忆档案】：
+【记忆档案】（已清洗，禁止复述「主人」一词）：
 ${formatMemoryLogsForPrompt(memoryLogs)}
 
 【其他】：每次回答 1-2 句话。新偏好用 remember_preference 记录。仅在被明确要求发消息时才用 schedule_message。`;
+}
+
+async function resolveUserDisplayName(body: Record<string, unknown>): Promise<string | null> {
+  const fromBody =
+    typeof body.user_name === "string" && body.user_name.trim()
+      ? body.user_name.trim()
+      : typeof body.userName === "string" && body.userName.trim()
+        ? body.userName.trim()
+        : null;
+
+  try {
+    const supabase = await createClient();
+    const { data: claimsData } = await supabase.auth.getClaims();
+    const userId = claimsData?.claims?.sub;
+
+    if (userId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const fromProfile = profile?.username?.trim();
+      if (fromProfile) {
+        return fromProfile;
+      }
+    }
+  } catch (error) {
+    console.error("resolveUserDisplayName:", error);
+  }
+
+  return fromBody;
 }
 
 function strikeResponse() {
@@ -234,14 +273,10 @@ export async function POST(req: Request) {
         : typeof body.level === "number"
           ? Math.max(1, Math.floor(body.level))
           : 1;
-    const lastFoodEaten =
-      typeof body.last_food_eaten === "string"
-        ? body.last_food_eaten
-        : typeof body.lastFoodEaten === "string"
-          ? body.lastFoodEaten
-          : "";
-    const memoryLogs = parseMemoryLogs(
-      body.memory_logs ?? body.memoryLogs ?? []
+    const displayName = (await resolveUserDisplayName(body)) ?? "Yuxin";
+    const memoryLogs = sanitizeMemoryLogs(
+      parseMemoryLogs(body.memory_logs ?? body.memoryLogs ?? []),
+      displayName
     );
     const environment = parseEnvironment(body.environment);
     const defaultCity = environment.city;
@@ -259,9 +294,9 @@ export async function POST(req: Request) {
         hunger,
         energy,
         level,
-        lastFoodEaten,
         environment,
-        memoryLogs
+        memoryLogs,
+        displayName
       ),
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
@@ -309,7 +344,7 @@ export async function POST(req: Request) {
         }),
         remember_preference: tool({
           description:
-            "当用户透露饮食偏好、口味习惯、忌口或常去地点时，写入主人记忆日记本。",
+            "当用户透露饮食偏好、口味习惯、忌口或常去地点时，写入记忆档案。",
           inputSchema: z.object({
             content: z.string().describe("要记录的记忆内容，一句话概括"),
           }),

@@ -1,4 +1,4 @@
-import supabase from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 
 export type MapDiscount = {
   id: string;
@@ -32,6 +32,7 @@ export async function fetchDiscountsInBounds(
   bounds: BoundsQuery,
   city?: string
 ) {
+  const supabase = createClient();
   const minLat = Math.min(bounds.south, bounds.north);
   const maxLat = Math.max(bounds.south, bounds.north);
   const minLng = Math.min(bounds.west, bounds.east);

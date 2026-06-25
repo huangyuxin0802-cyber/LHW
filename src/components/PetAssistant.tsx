@@ -1,12 +1,16 @@
 "use client";
 
 import { usePet } from "@/components/PetProvider";
+import AssistantMessageBubble from "@/components/AssistantMessageBubble";
+import ScavengerCouponDrop from "@/components/ScavengerCouponDrop";
 import {
   formatEnvironmentLabel,
   getBrisbaneEnvironment,
   type BrisbaneEnvironment,
 } from "@/lib/environment";
 import { getTrophyByName } from "@/lib/pet-trophies";
+import { useUsername } from "@/hooks/useUsername";
+import { useCyberScavenging } from "@/hooks/useCyberScavenging";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
@@ -16,7 +20,14 @@ import {
   type Variants,
 } from "framer-motion";
 import { Dog, Ghost, Send, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
 const FOOD_EMOJIS = ["🍪", "🍬", "🍎"] as const;
@@ -229,24 +240,59 @@ function isPassiveAnimState(state: GhostAnimState) {
   );
 }
 
+function resolvePetAnimate(
+  trickLocked: boolean,
+  innerControls: ReturnType<typeof useAnimationControls>,
+  isStartled: boolean,
+  isSleeping: boolean,
+  ghostAnimState: GhostAnimState
+) {
+  if (trickLocked || !isPassiveAnimState(ghostAnimState)) {
+    return innerControls;
+  }
+  if (isStartled) {
+    return "startled";
+  }
+  if (isSleeping) {
+    return "sleeping";
+  }
+  return ghostAnimState;
+}
+
 const passiveVariants: Variants = {
   idle: {
-    y: [0, -6, 0],
+    y: [0, -12, -4, -10, 0],
+    rotate: [0, -2, 2, -1, 0],
     scale: 1,
     scaleX: 1,
     scaleY: 1,
-    rotate: 0,
     x: 0,
     opacity: 1,
     transition: {
-      y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+      y: { duration: 3.2, repeat: Infinity, ease: "easeInOut" },
+      rotate: { duration: 3.2, repeat: Infinity, ease: "easeInOut" },
       scale: { duration: 0.2 },
       scaleX: { duration: 0.2 },
       scaleY: { duration: 0.2 },
-      rotate: { duration: 0.2 },
       x: { duration: 0.2 },
       opacity: { duration: 0.2 },
     },
+  },
+  sleeping: {
+    scale: 0.9,
+    y: [0, 5, 0],
+    opacity: 0.8,
+    rotate: 0,
+    x: 0,
+    transition: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+  },
+  startled: {
+    scale: [1, 1.4, 0.8, 1.1, 1],
+    y: [0, -60, 10, -5, 0],
+    rotate: [0, -20, 20, -10, 10, 0],
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, type: "spring", bounce: 0.6 },
   },
   starving_idle: {
     y: 0,
@@ -291,14 +337,14 @@ const passiveVariants: Variants = {
     },
   },
   eating: {
-    y: 0,
+    y: [0, -4, 0],
     x: 0,
-    rotate: 0,
+    rotate: [0, -8, 8, -4, 0],
     opacity: 1,
     scaleX: 1,
     scaleY: 1,
-    scale: [1, 1.22, 0.88, 1.14, 1],
-    transition: { duration: 0.65, ease: "easeOut" },
+    scale: [1, 1.18, 0.92, 1.12, 1],
+    transition: { duration: 0.75, ease: [0.34, 1.4, 0.64, 1] },
   },
   angry: {
     y: 0,
@@ -331,9 +377,12 @@ export default function PetAssistant({
   environment: environmentProp,
   onSearchComplete,
 }: PetAssistantProps) {
-  const { pet, feedPet, hydrated, addMemoryLog } = usePet();
+  const { pet, feedPet, hydrated, addMemoryLog, wakePet, scavengerPending, claimCyberScavengerReward } = usePet();
+  const username = useUsername();
   const petRef = useRef(pet);
   petRef.current = pet;
+  const usernameRef = useRef(username);
+  usernameRef.current = username;
 
   const constraintsRef = useRef<HTMLDivElement>(null);
   const ghostButtonRef = useRef<HTMLButtonElement>(null);
@@ -351,9 +400,13 @@ export default function PetAssistant({
   const rememberedToolCallsRef = useRef<Set<string>>(new Set());
   const foodLabelByIdRef = useRef<Map<string, string>>(new Map());
   const electricFlashTimerRef = useRef<number | null>(null);
+  const startledTimerRef = useRef<number | null>(null);
   const innerControls = useAnimationControls();
   const homeDragConstraintsRef = useRef<HTMLDivElement>(null);
   const homeDragControls = useAnimationControls();
+  const scavengerOuterControls = useAnimationControls();
+
+  const isHome = mode === "home";
 
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -361,6 +414,7 @@ export default function PetAssistant({
   const [idleBubble, setIdleBubble] = useState<string | null>(null);
   const [eatBubble, setEatBubble] = useState<string | null>(null);
   const [trickBubble, setTrickBubble] = useState<string | null>(null);
+  const [isStartled, setIsStartled] = useState(false);
 
   const [ghostAnimState, setGhostAnimState] = useState<GhostAnimState>("idle");
   const [activeFoods, setActiveFoods] = useState<ActiveFood[]>([]);
@@ -373,7 +427,29 @@ export default function PetAssistant({
   const [resolvedEnvironment, setResolvedEnvironment] =
     useState<BrisbaneEnvironment | null>(environmentProp ?? null);
 
-  const isHome = mode === "home";
+  const startScavengerLock = useCallback(() => {
+    setTrickLocked(true);
+  }, []);
+
+  const finishScavengerReward = useCallback(() => {
+    claimCyberScavengerReward();
+    setTrickLocked(false);
+  }, [claimCyberScavengerReward]);
+
+  const {
+    scavengerActive,
+    scavengerBubble,
+    couponFlight,
+  } = useCyberScavenging({
+    enabled: hydrated && scavengerPending && mounted,
+    displayName: username ?? "Yuxin",
+    innerControls,
+    outerControls: isHome ? homeDragControls : scavengerOuterControls,
+    ghostButtonRef,
+    onStart: startScavengerLock,
+    onComplete: finishScavengerReward,
+  });
+
   const theme = getAvatarTheme(pet.avatar);
   const activeEnvironment =
     environmentProp === undefined ? resolvedEnvironment : environmentProp;
@@ -415,6 +491,9 @@ export default function PetAssistant({
           last_food_eaten: petRef.current.lastFoodEaten,
           mood_state: petRef.current.moodState,
           memory_logs: petRef.current.memoryLogs,
+          ...(usernameRef.current
+            ? { user_name: usernameRef.current }
+            : {}),
           environment: activeEnvironmentRef.current
             ? {
                 ...environmentLabelsRef.current,
@@ -633,6 +712,33 @@ export default function PetAssistant({
     runEasterEgg(egg);
   }, [isSleeping, runEasterEgg]);
 
+  const forceWake = useCallback(() => {
+    wakePet();
+    const who = username ?? "你";
+    setTrickBubble(`哎呀！${who} 我醒了！👀`);
+    window.setTimeout(() => setTrickBubble(null), 3000);
+    setGhostAnimState("idle");
+
+    if (startledTimerRef.current) {
+      window.clearTimeout(startledTimerRef.current);
+    }
+
+    setIsStartled(true);
+    startledTimerRef.current = window.setTimeout(() => {
+      setIsStartled(false);
+      startledTimerRef.current = null;
+    }, 800);
+  }, [wakePet, username]);
+
+  const handlePetDoubleClick = useCallback(
+    (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      forceWake();
+    },
+    [forceWake]
+  );
+
   const spawnFood = useCallback(() => {
     if (typeof window === "undefined") {
       return;
@@ -789,11 +895,21 @@ export default function PetAssistant({
         setHintVisible(true);
         localStorage.setItem("lhw-ghost-hint-seen", "1");
         const t = window.setTimeout(() => setHintVisible(false), 8000);
-        return () => window.clearTimeout(t);
+        return () => {
+          window.clearTimeout(t);
+          if (startledTimerRef.current) {
+            window.clearTimeout(startledTimerRef.current);
+          }
+        };
       }
     } catch {
       // ignore
     }
+    return () => {
+      if (startledTimerRef.current) {
+        window.clearTimeout(startledTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -1023,7 +1139,9 @@ export default function PetAssistant({
     return text || "小幽灵连接失败，请稍后再试。";
   }, [error]);
 
-  const bubbleText = eatBubble ?? trickBubble ?? thinkingBubble ?? idleBubble;
+  const bubbleText =
+    scavengerBubble ?? eatBubble ?? trickBubble ?? thinkingBubble ?? idleBubble;
+  const isScavengerBubble = Boolean(scavengerBubble);
 
   if (!mounted) {
     return null;
@@ -1050,6 +1168,7 @@ export default function PetAssistant({
       onPointerDown={handlePetPointerDown}
       onPointerUp={handlePetPointerUp}
       onPointerCancel={handlePetPointerCancel}
+      onDoubleClick={handlePetDoubleClick}
       className={`relative flex ${petSize} touch-none items-center justify-center rounded-full border-2 text-white shadow-xl ring-4 transition hover:scale-105 active:scale-95 ${
         isSleeping
           ? "border-zinc-400/40 bg-zinc-600 shadow-zinc-900/40 ring-zinc-500/20"
@@ -1133,7 +1252,11 @@ export default function PetAssistant({
           initial={{ opacity: 0, y: 8, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.95 }}
-          className={`pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-50 w-[min(calc(100vw-2rem),18rem)] -translate-x-1/2 rounded-2xl border bg-zinc-950/95 px-4 py-2.5 text-center text-[13px] leading-snug shadow-2xl shadow-black/30 backdrop-blur-xl ${theme.bubble}`}
+          className={`pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-50 w-[min(calc(100vw-2rem),20rem)] -translate-x-1/2 rounded-2xl border px-4 py-3 text-center text-[13px] leading-snug shadow-2xl backdrop-blur-xl ${
+            isScavengerBubble
+              ? "border-amber-300/80 bg-gradient-to-br from-amber-500/95 via-orange-500/95 to-amber-600/95 font-semibold text-amber-50 shadow-amber-500/40 ring-2 ring-amber-200/50"
+              : `bg-zinc-950/95 shadow-black/30 ${theme.bubble}`
+          }`}
         >
           {bubbleText}
         </motion.div>
@@ -1141,11 +1264,28 @@ export default function PetAssistant({
     </AnimatePresence>
   );
 
+  const petAnimate = resolvePetAnimate(
+    trickLocked,
+    innerControls,
+    isStartled,
+    isSleeping,
+    ghostAnimState
+  );
+
   const animatedPet = (
     <motion.div
-      animate={innerControls}
+      animate={petAnimate}
       variants={passiveVariants}
       initial="idle"
+      whileHover={
+        !trickLocked && isPassiveAnimState(ghostAnimState) && !isSleeping
+          ? { scale: 1.06, y: -2 }
+          : undefined
+      }
+      whileTap={
+        !trickLocked && !isSleeping ? { scale: 0.9, rotate: -4 } : undefined
+      }
+      transition={{ type: "spring", stiffness: 420, damping: 18 }}
       className="relative"
     >
       {petButton}
@@ -1173,8 +1313,14 @@ export default function PetAssistant({
       }
       transition={
         food.phase === "flying"
-          ? { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
-          : { type: "spring", stiffness: 120, damping: 14, mass: 0.9 }
+          ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
+          : {
+              type: "spring",
+              stiffness: 140,
+              damping: 12,
+              mass: 0.75,
+              velocity: 2,
+            }
       }
       onAnimationComplete={() => {
         if (food.phase === "falling") handleFoodLanded(food.id);
@@ -1191,7 +1337,13 @@ export default function PetAssistant({
 
     return (
       <>
-        {createPortal(<>{foodLayer}</>, document.body)}
+        {createPortal(
+          <>
+            {foodLayer}
+            <ScavengerCouponDrop flight={couponFlight} />
+          </>,
+          document.body
+        )}
         <div
           ref={homeDragConstraintsRef}
           className={
@@ -1202,20 +1354,23 @@ export default function PetAssistant({
         >
           <motion.div
             drag={
-              isPassiveAnimState(ghostAnimState) && !isSleeping && !trickLocked
+              isPassiveAnimState(ghostAnimState) &&
+              !isSleeping &&
+              !trickLocked &&
+              !scavengerActive
             }
             dragMomentum={true}
             dragTransition={{
-              power: 0.2,
-              timeConstant: 250,
-              bounceStiffness: 300,
-              bounceDamping: 15,
+              power: 0.28,
+              timeConstant: 220,
+              bounceStiffness: 360,
+              bounceDamping: 18,
             }}
-            dragElastic={0.15}
+            dragElastic={0.12}
             dragConstraints={
               homeLayout === "dock" ? homeDragConstraintsRef : undefined
             }
-            whileDrag={{ scale: 1.15, rotate: 5, cursor: "grabbing" }}
+            whileDrag={{ scale: 1.12, rotate: 8, cursor: "grabbing" }}
             animate={homeDragControls}
             onDragStart={() => {
               dragMovedRef.current = true;
@@ -1241,9 +1396,20 @@ export default function PetAssistant({
           >
             <div className="relative z-50">{bubbleNode}</div>
             <motion.div
-              animate={innerControls}
+              animate={petAnimate}
               variants={passiveVariants}
               initial="idle"
+              whileHover={
+                !trickLocked && isPassiveAnimState(ghostAnimState) && !isSleeping
+                  ? { scale: 1.05, y: -2 }
+                  : undefined
+              }
+              whileTap={
+                !trickLocked && !isSleeping
+                  ? { scale: 0.92, rotate: -3 }
+                  : undefined
+              }
+              transition={{ type: "spring", stiffness: 420, damping: 18 }}
               className="relative"
             >
               <button
@@ -1252,6 +1418,7 @@ export default function PetAssistant({
                 onPointerDown={handlePetPointerDown}
                 onPointerUp={handlePetPointerUp}
                 onPointerCancel={handlePetPointerCancel}
+                onDoubleClick={handlePetDoubleClick}
                 className={`relative flex ${petSizeHome} touch-none items-center justify-center rounded-full border-2 text-white shadow-xl ring-4 transition hover:scale-105 active:scale-95 ${
                   isSleeping
                     ? "border-zinc-400/40 bg-zinc-600 shadow-zinc-900/40 ring-zinc-500/20"
@@ -1303,6 +1470,7 @@ export default function PetAssistant({
   return createPortal(
     <>
       {foodLayer}
+      <ScavengerCouponDrop flight={couponFlight} />
       <div
         ref={constraintsRef}
         className="pointer-events-none fixed inset-0 z-[2147483646]"
@@ -1310,18 +1478,22 @@ export default function PetAssistant({
       >
         <motion.div
           drag={
-            isPassiveAnimState(ghostAnimState) && !isSleeping && !trickLocked
+            isPassiveAnimState(ghostAnimState) &&
+            !isSleeping &&
+            !trickLocked &&
+            !scavengerActive
           }
           dragMomentum={true}
           dragTransition={{
-            power: 0.2,
-            timeConstant: 250,
-            bounceStiffness: 300,
-            bounceDamping: 15,
+            power: 0.28,
+            timeConstant: 220,
+            bounceStiffness: 360,
+            bounceDamping: 18,
           }}
-          dragElastic={0.1}
+          dragElastic={0.08}
           dragConstraints={constraintsRef}
-          whileDrag={{ scale: 1.15, rotate: 5, cursor: "grabbing" }}
+          whileDrag={{ scale: 1.12, rotate: 8, cursor: "grabbing" }}
+          animate={scavengerOuterControls}
           className="pointer-events-auto absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
           onDragStart={() => {
             dragMovedRef.current = true;
@@ -1403,7 +1575,11 @@ export default function PetAssistant({
                             : "bg-white/10 text-zinc-100"
                         }`}
                       >
-                        <MessageParts parts={message.parts} />
+                        {message.role === "assistant" ? (
+                          <AssistantMessageBubble parts={message.parts} />
+                        ) : (
+                          <MessageParts parts={message.parts} />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1432,6 +1608,15 @@ export default function PetAssistant({
                   <input
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        event.currentTarget.form?.requestSubmit();
+                      }
+                    }}
                     placeholder={isStriking ? "罢工中…" : "说点什么…"}
                     className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none"
                   />

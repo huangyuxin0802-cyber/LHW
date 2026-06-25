@@ -1,1 +1,1 @@
-export { default } from "@/components/MapArea";
+export { default } from "@/components/MapAreaLoader";

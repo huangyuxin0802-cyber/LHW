@@ -47,6 +47,7 @@ export type PetStatus = {
   memoryLogs: MemoryLogEntry[];
   backpack: BackpackItem[];
   equippedItem: string;
+  lastScavengerAt?: string;
   lastUpdated: string;
 };
 

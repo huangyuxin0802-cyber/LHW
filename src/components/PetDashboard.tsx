@@ -92,7 +92,10 @@ export default function PetDashboard({ open, onClose }: PetDashboardProps) {
                 <div className="grid grid-cols-3 gap-3">
                   {TROPHY_CATALOG.map((trophy) => {
                     const owned = ownedIds.has(trophy.id);
-                    const unlocked = pet.loginDays >= trophy.unlockDays;
+                    const unlocked =
+                      trophy.unlockDays === 0
+                        ? owned
+                        : pet.loginDays >= trophy.unlockDays;
                     const equipped = pet.equippedItem === trophy.name;
 
                     return (
