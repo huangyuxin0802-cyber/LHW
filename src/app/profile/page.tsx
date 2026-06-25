@@ -1,5 +1,6 @@
 import { DashboardLayout, getDashboardUser } from "@/components/DashboardLayout";
 import ProfilePanel from "@/components/ProfilePanel";
+import SettingsPanel from "@/components/SettingsPanel";
 
 export default async function ProfilePage() {
   const { userId, displayName, email, profile } = await getDashboardUser("/profile");
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
         joinedDate={joinedDate}
         userId={userId}
       />
+      <SettingsPanel />
     </DashboardLayout>
   );
 }

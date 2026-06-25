@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import DraggableGhost from "@/components/DraggableGhost";
+import GhostPet from "@/components/GhostPet";
+import { PetProvider } from "@/components/PetProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
@@ -43,8 +44,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
-          {children}
-          <DraggableGhost />
+          <PetProvider>
+            {children}
+            <GhostPet />
+          </PetProvider>
         </ThemeProvider>
       </body>
     </html>
