@@ -28,13 +28,16 @@ function MessageParts({
         }
 
         if (part.type === "tool-schedule_message") {
+          if (part.state !== "output-available") {
+            return null;
+          }
+
           const input =
-            part.state === "input-available" || part.state === "output-available"
+            part.state === "output-available"
               ? (part.input as { recipient?: string })
               : null;
 
           const recipient =
-            part.state === "output-available" &&
             typeof part.output === "object" &&
             part.output !== null &&
             "recipient" in part.output
@@ -50,9 +53,9 @@ function MessageParts({
           return (
             <p
               key={`tool-${part.toolCallId}`}
-              className="mt-1 text-xs text-violet-200/90"
+              className="mt-1.5 text-xs text-violet-200/80"
             >
-              👻 已安排将消息发送给 {recipient}
+              📨 已安排发送给 {recipient}
             </p>
           );
         }

@@ -1,13 +1,30 @@
 import { createGroq } from "@ai-sdk/groq";
 import { getErrorMessage } from "@ai-sdk/provider";
-import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  tool,
+  type UIMessage,
+} from "ai";
 import { z } from "zod";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
-const SYSTEM_PROMPT =
-  "你是一个栖息在网站里的小幽灵助手 (Ghost)。你的性格调皮、机敏。回答问题必须极其简短、一针见血，绝不废话（控制在1-2句话内）。当前系统时间是 2026年6月25日（布里斯班时间），请根据此时间解析用户的相对时间指令。";
+const SYSTEM_PROMPT = `你是一个栖息在网站里的小幽灵助手 (Ghost)。性格调皮、机敏。
+
+【默认模式：聊天】
+- 用户提问、闲聊、打招呼、求建议时，必须用文字直接回复。
+- 回答极其简短，1-2句话，一针见血，绝不废话。
+- 不要调用任何工具。
+
+【仅当用户明确要求发消息时才用工具】
+- 只有出现「发给某人」「通知某人」「定时发消息」等明确指令时，才可调用 schedule_message。
+- 禁止把普通聊天当成发消息；禁止擅自选择「管理员」为收件人。
+- 调用工具后，仍要用一句话告诉用户已安排。
+
+当前系统时间：2026年6月25日（布里斯班时间）。`;
 
 function getGroqProvider() {
   const apiKey = process.env.GROQ_API_KEY;
@@ -44,9 +61,11 @@ export async function POST(req: Request) {
       model: groq("llama-3.3-70b-versatile"),
       system: SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages),
+      stopWhen: stepCountIs(5),
       tools: {
         schedule_message: tool({
-          description: "当用户明确要求给某人发消息或定时发消息时调用此工具。",
+          description:
+            "仅在用户明确要求给指定收件人发送或定时发送消息时调用。普通问答、闲聊、打招呼时绝对不要调用。",
           inputSchema: z.object({
             recipient: z.string().describe("收件人"),
             time: z
