@@ -28,6 +28,8 @@ type DailyDiscount = {
   mock_drive_time: string | null;
   mock_transit_info: string | null;
   image_url: string | null;
+  country: string | null;
+  city: string | null;
 };
 
 const BRISBANE_CENTER = {
@@ -104,7 +106,7 @@ function openExternalUrl(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-export default function DiscountMap() {
+export default function DiscountMap({ city = "Brisbane" }: { city?: string }) {
   const mapRef = useRef<MapRef>(null);
   const [restaurants, setRestaurants] = useState<DailyDiscount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,8 +127,9 @@ export default function DiscountMap() {
       const { data, error } = await supabase
         .from("daily_discounts")
         .select(
-          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance, cuisine, description, mock_drive_time, mock_transit_info, image_url"
-        );
+          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance, cuisine, description, mock_drive_time, mock_transit_info, image_url, country, city"
+        )
+        .ilike("city", city);
 
       if (error) {
         console.error(error);
@@ -139,7 +142,7 @@ export default function DiscountMap() {
     }
 
     void fetchDiscounts();
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     if (!selectedRestaurant) {

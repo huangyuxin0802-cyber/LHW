@@ -7,6 +7,8 @@ export type TimeOfDay =
 export type WeatherKind = "clear" | "raining" | "cloudy" | "unknown";
 
 export type BrisbaneEnvironment = {
+  city: string;
+  country: string;
   timeOfDay: TimeOfDay;
   hour: number;
   isSleepy: boolean;
@@ -54,9 +56,13 @@ export function getBrisbaneHour(now = new Date()) {
 export function getBrisbaneEnvironmentFromHour(
   hour: number,
   weather: WeatherKind = "unknown",
-  temperature?: number
+  temperature?: number,
+  city = "Brisbane",
+  country = "Australia"
 ): BrisbaneEnvironment {
   return {
+    city,
+    country,
     timeOfDay: resolveTimeOfDay(hour),
     hour,
     isSleepy: hour >= 23 || hour < 5,
@@ -71,7 +77,13 @@ export async function getBrisbaneEnvironment(): Promise<BrisbaneEnvironment> {
   try {
     const response = await fetch(OPEN_METEO_URL, { cache: "no-store" });
     if (!response.ok) {
-      return getBrisbaneEnvironmentFromHour(hour);
+      return getBrisbaneEnvironmentFromHour(
+        hour,
+        "unknown",
+        undefined,
+        "Brisbane",
+        "Australia"
+      );
     }
 
     const data = (await response.json()) as {
@@ -84,10 +96,18 @@ export async function getBrisbaneEnvironment(): Promise<BrisbaneEnvironment> {
     return getBrisbaneEnvironmentFromHour(
       hour,
       code >= 0 ? mapWeatherCode(code) : "unknown",
-      temperature
+      temperature,
+      "Brisbane",
+      "Australia"
     );
   } catch {
-    return getBrisbaneEnvironmentFromHour(hour);
+    return getBrisbaneEnvironmentFromHour(
+      hour,
+      "unknown",
+      undefined,
+      "Brisbane",
+      "Australia"
+    );
   }
 }
 

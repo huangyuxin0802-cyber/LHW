@@ -1,5 +1,5 @@
-import HomeLanding from "@/components/HomeLanding";
+import ChatArea from "@/components/ChatArea";
 
 export default function HomePage() {
-  return <HomeLanding />;
+  return <ChatArea />;
 }

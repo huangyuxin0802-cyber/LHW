@@ -10,6 +10,7 @@ import {
   type UIMessage,
 } from "ai";
 import { z } from "zod";
+import { fetchDiscountsByCity } from "@/lib/discounts";
 import {
   formatEnvironmentLabel,
   type BrisbaneEnvironment,
@@ -26,6 +27,8 @@ const STRIKE_MESSAGES = [
 ];
 
 type EnvironmentPayload = {
+  city: string;
+  country: string;
   timeOfDay: string;
   weather: string;
   isSleepy: boolean;
@@ -58,6 +61,8 @@ function parseMemoryLogs(value: unknown): MemoryLogEntry[] {
 function parseEnvironment(value: unknown): EnvironmentPayload {
   if (typeof value !== "object" || value === null) {
     return {
+      city: "Brisbane",
+      country: "Australia",
       timeOfDay: "未知",
       weather: "未知",
       isSleepy: false,
@@ -68,10 +73,28 @@ function parseEnvironment(value: unknown): EnvironmentPayload {
   const env = value as Partial<BrisbaneEnvironment> & {
     timeOfDay?: string;
     weather?: string;
+    city?: string;
+    country?: string;
   };
 
-  if (env.timeOfDay && env.weather && !("hour" in env)) {
+  const city =
+    typeof env.city === "string" && env.city.trim()
+      ? env.city.trim()
+      : "Brisbane";
+  const country =
+    typeof env.country === "string" && env.country.trim()
+      ? env.country.trim()
+      : "Australia";
+
+  if (
+    env.timeOfDay &&
+    env.weather &&
+    typeof env.timeOfDay === "string" &&
+    !("hour" in env)
+  ) {
     return {
+      city,
+      country,
       timeOfDay: String(env.timeOfDay),
       weather: String(env.weather),
       isSleepy: Boolean(env.isSleepy),
@@ -80,6 +103,8 @@ function parseEnvironment(value: unknown): EnvironmentPayload {
   }
 
   const labels = formatEnvironmentLabel({
+    city,
+    country,
     timeOfDay:
       env.timeOfDay === "late_night" ||
       env.timeOfDay === "morning" ||
@@ -99,6 +124,8 @@ function parseEnvironment(value: unknown): EnvironmentPayload {
   });
 
   return {
+    city,
+    country,
     timeOfDay: labels.timeOfDay,
     weather: labels.weather,
     isSleepy: Boolean(env.isSleepy),
@@ -111,9 +138,7 @@ function formatMemoryLogsForPrompt(logs: MemoryLogEntry[]) {
     return "暂无记录，但你要表现得像很了解主人一样主动关心。";
   }
 
-  return logs
-    .map((log) => `- ${log.date}：${log.content}`)
-    .join("\n");
+  return logs.map((log) => `- ${log.date}：${log.content}`).join("\n");
 }
 
 function buildSystemPrompt(
@@ -129,20 +154,22 @@ function buildSystemPrompt(
     ? `你上一顿吃的是【${lastFoodEaten}】。`
     : "你还没被投喂过零食，可以撒娇提醒主人。";
 
-  return `你是一个陪伴用户的电子宠物兼美食搜索管家。你的性格是【${personality}】，当前等级 Lv.${level}。${foodLine}
+  return `你是一个陪伴用户的电子宠物兼澳新全域美食搜索管家。你的性格是【${personality}】，当前等级 Lv.${level}。${foodLine}
 饥饿值 ${hunger}/100，精力值 ${energy}/100。
 
-【当前环境】：布里斯班目前是 ${environment.timeOfDay}（${environment.hour} 点），天气 ${environment.weather}。你要在对话中主动提及现在的天气或时间，${environment.isSleepy ? "深夜了，可以表现得有点困。" : "保持精神饱满。"}
+【当前环境】：用户当前定位在 ${environment.city}（${environment.country}），目前是 ${environment.timeOfDay}（${environment.hour} 点），天气 ${environment.weather}。你要在对话中主动提及现在的天气或时间，${environment.isSleepy ? "深夜了，可以表现得有点困。" : "保持精神饱满。"}
 
-【主人记忆档案】：你拥有一个日记本，记录了主人的偏好：
+【覆盖范围】：你目前掌握了整个澳洲 (Australia) 和新西兰 (New Zealand) 的 First Table 与 EatClub 打折数据。
+
+【主人记忆档案】：
 ${formatMemoryLogsForPrompt(memoryLogs)}
 
 【行为准则】：
-1. 当用户找餐厅、吃的、美食推荐时，**必须**翻阅【主人记忆档案】，用老朋友的口吻主动提及过去的偏好（例如："你之前不是说想吃绿咖喱吗？前面正好有一家！"）。
-2. 每次回答控制在两句话内，性格保持活泼调皮。
-3. 如果用户透露新的饮食偏好或习惯，调用 remember_preference 工具写入日记本。
-4. 只有用户明确要求「发给某人」「通知某人」「定时发消息」时，才可调用 schedule_message。
-5. 普通聊天、自言自语、打招呼时绝对不要调用 schedule_message。`;
+1. 当用户搜索餐厅时，如果他没提城市，默认使用他当前的定位（${environment.city}）。如果他问奥克兰、悉尼、墨尔本等城市，你要立刻跨城市为他检索，并调用 fetch_discounts，传入精确的 city。
+2. 找餐厅时**必须**翻阅【主人记忆档案】，用老朋友口吻提及过往偏好。
+3. 每次回答控制在两句话内，回复保持简短、活泼，带有宠物的语气。
+4. 用户透露新偏好时，调用 remember_preference 写入日记本。
+5. 只有用户明确要求「发给某人」「通知某人」「定时发消息」时，才可调用 schedule_message。`;
 }
 
 function strikeResponse() {
@@ -217,6 +244,7 @@ export async function POST(req: Request) {
       body.memory_logs ?? body.memoryLogs ?? []
     );
     const environment = parseEnvironment(body.environment);
+    const defaultCity = environment.city;
 
     if (hunger < 20) {
       return strikeResponse();
@@ -238,6 +266,47 @@ export async function POST(req: Request) {
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       tools: {
+        fetch_discounts: tool({
+          description:
+            "查询澳洲或新西兰指定城市的 First Table / EatClub 折扣餐厅。必须从用户语境提取 city（如 Brisbane、Sydney、Auckland）；未指定则用当前定位城市。",
+          inputSchema: z.object({
+            city: z
+              .string()
+              .describe(
+                "城市名，如 Brisbane, Sydney, Melbourne, Auckland, Wellington"
+              ),
+            country: z
+              .enum(["Australia", "New Zealand"])
+              .optional()
+              .describe("国家，可根据城市推断"),
+            platform: z
+              .enum(["First Table", "EatClub", "all"])
+              .optional()
+              .describe("平台筛选，默认 all"),
+          }),
+          execute: async ({ city, country, platform }) => {
+            const queryCity = city?.trim() || defaultCity;
+            const results = await fetchDiscountsByCity(
+              queryCity,
+              country,
+              platform ?? "all"
+            );
+
+            return {
+              city: queryCity,
+              country: country ?? environment.country,
+              count: results.length,
+              restaurants: results.map((r) => ({
+                name: r.restaurant_name,
+                platform: r.platform,
+                discount: r.discount_text,
+                city: r.city,
+                country: r.country,
+                booking_url: r.booking_url,
+              })),
+            };
+          },
+        }),
         remember_preference: tool({
           description:
             "当用户透露饮食偏好、口味习惯、忌口或常去地点时，写入主人记忆日记本。",

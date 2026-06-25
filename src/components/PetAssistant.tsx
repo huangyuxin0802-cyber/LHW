@@ -314,6 +314,7 @@ const passiveVariants: Variants = {
 
 export type PetAssistantProps = {
   mode?: "home" | "floating";
+  homeLayout?: "center" | "dock";
   className?: string;
   isThinking?: boolean;
   isSearching?: boolean;
@@ -323,6 +324,7 @@ export type PetAssistantProps = {
 
 export default function PetAssistant({
   mode = "floating",
+  homeLayout = "center",
   className,
   isThinking = false,
   isSearching = false,
@@ -350,6 +352,8 @@ export default function PetAssistant({
   const foodLabelByIdRef = useRef<Map<string, string>>(new Map());
   const electricFlashTimerRef = useRef<number | null>(null);
   const innerControls = useAnimationControls();
+  const homeDragConstraintsRef = useRef<HTMLDivElement>(null);
+  const homeDragControls = useAnimationControls();
 
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -728,7 +732,7 @@ export default function PetAssistant({
 
   const handlePetPointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
-      if (isHome || trickLockedRef.current || isSleeping) {
+      if (trickLockedRef.current || isSleeping) {
         return;
       }
 
@@ -740,20 +744,20 @@ export default function PetAssistant({
         triggerRandomEasterEgg();
       }, LONG_PRESS_MS);
     },
-    [clearLongPressTimer, isHome, isSleeping, triggerRandomEasterEgg]
+    [clearLongPressTimer, isSleeping, triggerRandomEasterEgg]
   );
 
   const handlePetPointerUp = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
-      if (isHome) {
-        return;
-      }
-
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
       clearLongPressTimer();
+
+      if (isHome) {
+        return;
+      }
 
       if (
         !longPressFiredRef.current &&
@@ -1182,12 +1186,115 @@ export default function PetAssistant({
   ));
 
   if (isHome) {
+    const petSizeHome = homeLayout === "dock" ? "h-16 w-16" : "h-28 w-28";
+    const iconSizeHome = homeLayout === "dock" ? "h-8 w-8" : "h-12 w-12";
+
     return (
       <>
         {createPortal(<>{foodLayer}</>, document.body)}
-        <div className={`relative mx-auto ${className ?? ""}`}>
-          <div className="relative z-50">{bubbleNode}</div>
-          {animatedPet}
+        <div
+          ref={homeDragConstraintsRef}
+          className={
+            homeLayout === "dock"
+              ? "pointer-events-none fixed inset-0 z-[25]"
+              : `relative mx-auto ${className ?? ""}`
+          }
+        >
+          <motion.div
+            drag={
+              isPassiveAnimState(ghostAnimState) && !isSleeping && !trickLocked
+            }
+            dragMomentum={true}
+            dragTransition={{
+              power: 0.2,
+              timeConstant: 250,
+              bounceStiffness: 300,
+              bounceDamping: 15,
+            }}
+            dragElastic={0.15}
+            dragConstraints={
+              homeLayout === "dock" ? homeDragConstraintsRef : undefined
+            }
+            whileDrag={{ scale: 1.15, rotate: 5, cursor: "grabbing" }}
+            animate={homeDragControls}
+            onDragStart={() => {
+              dragMovedRef.current = true;
+              clearLongPressTimer();
+            }}
+            onDragEnd={() => {
+              window.setTimeout(() => {
+                dragMovedRef.current = false;
+              }, 80);
+              if (homeLayout === "dock") {
+                void homeDragControls.start({
+                  x: 0,
+                  y: 0,
+                  transition: {
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 28,
+                  },
+                });
+              }
+            }}
+            className={`relative ${homeLayout === "dock" ? "pointer-events-auto shrink-0" : className ?? ""}`}
+          >
+            <div className="relative z-50">{bubbleNode}</div>
+            <motion.div
+              animate={innerControls}
+              variants={passiveVariants}
+              initial="idle"
+              className="relative"
+            >
+              <button
+                ref={ghostButtonRef}
+                type="button"
+                onPointerDown={handlePetPointerDown}
+                onPointerUp={handlePetPointerUp}
+                onPointerCancel={handlePetPointerCancel}
+                className={`relative flex ${petSizeHome} touch-none items-center justify-center rounded-full border-2 text-white shadow-xl ring-4 transition hover:scale-105 active:scale-95 ${
+                  isSleeping
+                    ? "border-zinc-400/40 bg-zinc-600 shadow-zinc-900/40 ring-zinc-500/20"
+                    : isStriking
+                      ? "border-red-400/50 bg-zinc-700 shadow-red-950/50 ring-red-500/20"
+                      : trickActive
+                        ? eggButtonClass ||
+                          "border-fuchsia-300/50 bg-fuchsia-600 shadow-fuchsia-900/40 ring-fuchsia-500/25"
+                        : `${theme.border} ${theme.bg} ${theme.shadow} ${theme.ring}`
+                }`}
+                aria-label="电子宠物"
+              >
+                {!isSleeping &&
+                  isPassiveAnimState(ghostAnimState) &&
+                  !isStriking && (
+                    <span
+                      className={`absolute inset-0 animate-ping rounded-full ${theme.ping}`}
+                    />
+                  )}
+                {isSearching && (
+                  <span className="absolute -top-3 text-xl">🕵️‍♂️</span>
+                )}
+                {rainOverlayEmoji && !isSearching && (
+                  <span className="absolute -top-2 text-lg">{rainOverlayEmoji}</span>
+                )}
+                {equippedEmoji && !isSearching && !rainOverlayEmoji && (
+                  <span className="absolute -top-2 text-lg">{equippedEmoji}</span>
+                )}
+                {isSleeping ? (
+                  <span className="relative text-lg font-semibold">Zzz</span>
+                ) : pet.avatar === "puppy" ? (
+                  <Dog className={`relative ${iconSizeHome}`} />
+                ) : (
+                  <Ghost className={`relative ${iconSizeHome}`} />
+                )}
+                <span
+                  className={`absolute -left-1 -bottom-1 rounded-full bg-zinc-950/90 px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-white/15 ${theme.badge}`}
+                >
+                  Lv.{pet.loginDays}
+                </span>
+              </button>
+            </motion.div>
+          </motion.div>
         </div>
       </>
     );
