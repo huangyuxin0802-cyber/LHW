@@ -3,13 +3,41 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
-import { Ghost, Send, X } from "lucide-react";
+import { Ghost, Send, X, Copy, Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const CHAT_TRANSPORT = new DefaultChatTransport<UIMessage>({
   api: "/api/chat",
 });
+
+function getMessageCopyText(parts: UIMessage["parts"]) {
+  return parts
+    .map((part) => {
+      if (part.type === "text") {
+        return part.text;
+      }
+
+      if (
+        part.type === "tool-schedule_message" &&
+        part.state === "output-available"
+      ) {
+        const recipient =
+          typeof part.output === "object" &&
+          part.output !== null &&
+          "recipient" in part.output
+            ? String((part.output as { recipient: string }).recipient)
+            : (part.input as { recipient?: string })?.recipient;
+
+        return recipient ? `📨 已安排发送给 ${recipient}` : "";
+      }
+
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
 
 function MessageParts({
   parts,
@@ -72,6 +100,7 @@ export default function DraggableGhost() {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const { messages, sendMessage, status, error, clearError } = useChat({
     transport: CHAT_TRANSPORT,
@@ -157,22 +186,54 @@ export default function DraggableGhost() {
                   </p>
                 )}
 
-                {messages.map((message) => (
+                {messages.map((message) => {
+                  const copyText = getMessageCopyText(message.parts);
+                  const canCopy =
+                    message.role === "assistant" && copyText.length > 0;
+
+                  return (
                   <div
                     key={message.id}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`group flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-snug ${
+                      className={`relative max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-snug select-text ${
                         message.role === "user"
                           ? "bg-violet-600 text-white"
                           : "bg-white/10 text-zinc-100"
                       }`}
                     >
                       <MessageParts parts={message.parts} />
+                      {canCopy && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(copyText);
+                              setCopiedMessageId(message.id);
+                              window.setTimeout(
+                                () => setCopiedMessageId(null),
+                                1500
+                              );
+                            } catch {
+                              // fallback: select text for manual copy
+                            }
+                          }}
+                          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-zinc-800/90 text-zinc-300 opacity-100 shadow transition hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
+                          aria-label="复制回复"
+                          title="复制"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <Check className="h-3 w-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
 
                 {isLoading && (
                   <p className="text-xs text-zinc-500">小幽灵正在琢磨…</p>
