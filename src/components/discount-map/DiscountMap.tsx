@@ -17,12 +17,15 @@ type DailyDiscount = {
   discount_text: string;
   booking_url: string;
   distance: number | null;
+  cuisine: string | null;
+  description: string | null;
+  mock_drive_time: string | null;
+  mock_transit_info: string | null;
 };
 
 type UserLocation = {
   latitude: number;
   longitude: number;
-  accuracy: number;
 };
 
 const BRISBANE_CENTER = {
@@ -72,8 +75,26 @@ function UserLocationMarker() {
   );
 }
 
-function openBookingUrl(url: string) {
+function openExternalUrl(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function buildDirectionsUrl(
+  restaurant: DailyDiscount,
+  userLocation: UserLocation | null
+) {
+  const destination = `${restaurant.latitude},${restaurant.longitude}`;
+  const params = new URLSearchParams({
+    api: "1",
+    destination,
+    travelmode: "transit",
+  });
+
+  if (userLocation) {
+    params.set("origin", `${userLocation.latitude},${userLocation.longitude}`);
+  }
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 export default function DiscountMap() {
@@ -93,7 +114,7 @@ export default function DiscountMap() {
       const { data, error } = await supabase
         .from("daily_discounts")
         .select(
-          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance"
+          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance, cuisine, description, mock_drive_time, mock_transit_info"
         );
 
       if (error) {
@@ -117,12 +138,11 @@ export default function DiscountMap() {
 
     setLocationStatus("locating");
 
-    const watchId = navigator.geolocation.watchPosition(
+    navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
         });
         setLocationStatus("active");
       },
@@ -139,8 +159,6 @@ export default function DiscountMap() {
         timeout: 15_000,
       }
     );
-
-    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const getLiveDistance = useCallback(
@@ -161,7 +179,8 @@ export default function DiscountMap() {
 
   const restaurantsWithDistance = useMemo(() => {
     return [...restaurants].sort(
-      (a, b) => (getLiveDistance(a) ?? Infinity) - (getLiveDistance(b) ?? Infinity)
+      (a, b) =>
+        (getLiveDistance(a) ?? Infinity) - (getLiveDistance(b) ?? Infinity)
     );
   }, [restaurants, getLiveDistance]);
 
@@ -288,25 +307,59 @@ export default function DiscountMap() {
             className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none [&_.maplibregl-popup-content]:pointer-events-auto"
           >
             <div
-              className="w-72 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:w-80"
+              className="w-80 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:w-96"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="p-4">
-                <h2 className="text-lg font-bold text-zinc-900">
-                  {selectedRestaurant.restaurant_name}
-                </h2>
-                <span
-                  className={`mt-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
-                    selectedRestaurant.platform === "First Table"
-                      ? "bg-blue-700"
-                      : "bg-orange-500"
-                  }`}
-                >
-                  {selectedRestaurant.platform}
-                </span>
-                <p className="mt-3 text-base font-semibold text-emerald-600">
-                  {selectedRestaurant.discount_text}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="text-xl font-bold leading-tight text-zinc-900">
+                    {selectedRestaurant.restaurant_name}
+                  </h2>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
+                      selectedRestaurant.platform === "First Table"
+                        ? "bg-blue-700"
+                        : "bg-orange-500"
+                    }`}
+                  >
+                    {selectedRestaurant.platform}
+                  </span>
+                </div>
+
+                {selectedRestaurant.cuisine && (
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                    {selectedRestaurant.cuisine}
+                  </p>
+                )}
+
+                {selectedRestaurant.description && (
+                  <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+                    {selectedRestaurant.description}
+                  </p>
+                )}
+
+                <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2.5">
+                  <p className="text-sm font-bold text-emerald-700">
+                    {selectedRestaurant.discount_text}
+                  </p>
+                </div>
+
+                {(selectedRestaurant.mock_drive_time ||
+                  selectedRestaurant.mock_transit_info) && (
+                  <p className="mt-3 text-xs text-zinc-500">
+                    {selectedRestaurant.mock_drive_time && (
+                      <span>🚗 {selectedRestaurant.mock_drive_time}</span>
+                    )}
+                    {selectedRestaurant.mock_drive_time &&
+                      selectedRestaurant.mock_transit_info && (
+                        <span className="mx-2 text-zinc-300">|</span>
+                      )}
+                    {selectedRestaurant.mock_transit_info && (
+                      <span>🚌 {selectedRestaurant.mock_transit_info}</span>
+                    )}
+                  </p>
+                )}
+
                 {(() => {
                   const distance = getLiveDistance(selectedRestaurant);
                   if (distance == null) {
@@ -321,13 +374,29 @@ export default function DiscountMap() {
                   );
                 })()}
               </div>
-              <button
-                type="button"
-                onClick={() => openBookingUrl(selectedRestaurant.booking_url)}
-                className="block w-full bg-zinc-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-zinc-800"
-              >
-                Check Availability
-              </button>
+
+              <div className="flex border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() =>
+                    openExternalUrl(selectedRestaurant.booking_url)
+                  }
+                  className="flex-1 bg-zinc-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-zinc-800"
+                >
+                  Claim Discount
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    openExternalUrl(
+                      buildDirectionsUrl(selectedRestaurant, userLocation)
+                    )
+                  }
+                  className="flex-1 border-l border-zinc-200 bg-white px-4 py-3 text-center text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
+                >
+                  Directions
+                </button>
+              </div>
             </div>
           </Popup>
         )}
