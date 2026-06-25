@@ -72,6 +72,32 @@ export default function DraggableGhost() {
 
   const { messages, sendMessage, status, error, clearError } = useChat({
     transport: CHAT_TRANSPORT,
+    onError: (chatError) => {
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7651/ingest/51a1527c-1e00-4d0a-a3e5-1c3b4acb2c1b",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "867c31",
+          },
+          body: JSON.stringify({
+            sessionId: "867c31",
+            runId: "pre-fix",
+            hypothesisId: "H3-H5",
+            location: "DraggableGhost.tsx:useChat:onError",
+            message: "client chat error",
+            data: {
+              errMsg: chatError.message?.slice(0, 200) ?? "no message",
+              errName: chatError.name,
+            },
+            timestamp: Date.now(),
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+    },
   });
 
   const isLoading = status === "submitted" || status === "streaming";
@@ -86,6 +112,9 @@ export default function DraggableGhost() {
     }
 
     const text = error.message;
+    if (text.includes("配额已用完") || text.toLowerCase().includes("quota")) {
+      return text;
+    }
     if (text.includes("GOOGLE_GENERATIVE_AI_API_KEY")) {
       return "Gemini API Key 未配置。请在 Vercel 环境变量添加 GOOGLE_GENERATIVE_AI_API_KEY。";
     }
