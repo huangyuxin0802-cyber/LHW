@@ -39,30 +39,6 @@ function formatChatError(error: unknown): string {
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
-    const apiKey =
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
-    // #region agent log
-    fetch("http://127.0.0.1:7651/ingest/51a1527c-1e00-4d0a-a3e5-1c3b4acb2c1b", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "867c31",
-      },
-      body: JSON.stringify({
-        sessionId: "867c31",
-        runId: "pre-fix",
-        hypothesisId: "H1-H5",
-        location: "api/chat/route.ts:POST:entry",
-        message: "chat POST received",
-        data: {
-          messageCount: messages?.length ?? 0,
-          hasApiKey: Boolean(apiKey),
-          keyPrefix: apiKey ? apiKey.slice(0, 4) : null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     const google = getGeminiProvider();
 
     const result = streamText({
@@ -93,31 +69,6 @@ export async function POST(req: Request) {
           },
         }),
       },
-      onError: ({ error }) => {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        const errName = error instanceof Error ? error.name : "unknown";
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7651/ingest/51a1527c-1e00-4d0a-a3e5-1c3b4acb2c1b",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "867c31",
-            },
-            body: JSON.stringify({
-              sessionId: "867c31",
-              runId: "pre-fix",
-              hypothesisId: "H2-H4",
-              location: "api/chat/route.ts:streamText:onError",
-              message: "stream error during generation",
-              data: { errName, errMsg: errMsg.slice(0, 200) },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
-      },
     });
 
     return result.toUIMessageStreamResponse({
@@ -125,26 +76,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[chat]", error);
-    const errMsg = error instanceof Error ? error.message : String(error);
-    const errName = error instanceof Error ? error.name : "unknown";
-    // #region agent log
-    fetch("http://127.0.0.1:7651/ingest/51a1527c-1e00-4d0a-a3e5-1c3b4acb2c1b", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "867c31",
-      },
-      body: JSON.stringify({
-        sessionId: "867c31",
-        runId: "pre-fix",
-        hypothesisId: "H1-H5",
-        location: "api/chat/route.ts:POST:catch",
-        message: "sync error before/during stream setup",
-        data: { errName, errMsg: errMsg.slice(0, 200) },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
 
     const message =
       error instanceof Error
