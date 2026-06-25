@@ -1,1 +1,1 @@
-export { default } from "@/components/GhostPet";
+export { default } from "@/components/PetAssistant";

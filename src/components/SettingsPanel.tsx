@@ -2,7 +2,7 @@
 
 import { usePet } from "@/components/PetProvider";
 import { useTheme } from "@/components/ThemeProvider";
-import { PET_PERSONALITIES, type PetMoodState } from "@/types/pet";
+import { PET_AVATARS, PET_PERSONALITIES, type PetMoodState } from "@/types/pet";
 import { ui } from "@/lib/ui";
 
 const MOOD_LABELS: Record<PetMoodState, string> = {
@@ -51,15 +51,14 @@ function StatBar({
 
 export default function SettingsPanel() {
   const { theme, toggleTheme } = useTheme();
-  const { pet, setPersonality } = usePet();
-  const xpToNext = pet.level * 100 - pet.xp;
+  const { pet, setPersonality, setAvatar, setDropFrequency } = usePet();
   const isStriking = pet.hunger < 20;
 
   return (
     <section className={`mt-6 ${ui.card}`}>
       <p className={ui.eyebrow}>Settings</p>
       <h2 className={`mt-2 text-[22px] font-semibold ${ui.textPrimary}`}>
-        网站与小幽灵设置
+        网站与电子宠物设置
       </h2>
 
       <div className="mt-8 space-y-8">
@@ -97,29 +96,86 @@ export default function SettingsPanel() {
 
         <div>
           <h3 className={`text-[15px] font-semibold ${ui.textPrimary}`}>
-            小幽灵设置
+            电子宠物
           </h3>
 
           <div className={`mt-3 space-y-4 rounded-2xl border p-4 ${ui.cardInner}`}>
             <div className="flex items-center justify-between rounded-xl bg-violet-500/10 px-3 py-2.5 dark:bg-violet-500/15">
               <div>
                 <p className={`text-[14px] font-semibold ${ui.textPrimary}`}>
-                  Lv.{pet.level} 电子宠物
+                  Lv.{pet.loginDays} · 累计登录 {pet.loginDays} 天
                 </p>
                 <p className={`mt-0.5 text-[12px] ${ui.label}`}>
-                  经验 {pet.xp} · 距下一级还需 {Math.max(0, xpToNext)} XP
+                  经验 {pet.xp} · 掉落间隔 {pet.dropFrequency} 秒
                 </p>
               </div>
               <span className="text-2xl" aria-hidden>
-                👻
+                {pet.avatar === "puppy" ? "🐶" : "👻"}
               </span>
             </div>
 
             {isStriking && (
               <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-600 dark:text-red-300">
-                罢工中！饥饿值低于 20，小幽灵拒绝聊天。点击屏幕掉落的 🍪🍬🍎 喂它。
+                罢工中！饥饿值低于 20。点击掉落的零食喂它。
               </div>
             )}
+
+            <div>
+              <p className={`mb-2 text-[13px] font-medium ${ui.label}`}>
+                形象切换
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {PET_AVATARS.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setAvatar(item)}
+                    className={`rounded-2xl border px-4 py-4 text-left transition ${
+                      pet.avatar === item
+                        ? item === "puppy"
+                          ? "border-yellow-400 bg-yellow-500/15 ring-2 ring-yellow-400/40"
+                          : "border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/40"
+                        : "border-zinc-200 hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/20"
+                    }`}
+                  >
+                    <span className="text-2xl">
+                      {item === "puppy" ? "🐶" : "👻"}
+                    </span>
+                    <p className={`mt-2 text-[14px] font-semibold ${ui.textPrimary}`}>
+                      {item === "puppy" ? "治愈小狗" : "调皮幽灵"}
+                    </p>
+                    <p className={`mt-0.5 text-[11px] ${ui.label}`}>
+                      {item === "puppy" ? "黄色温暖主题" : "紫色调皮主题"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="drop-frequency"
+                className={`mb-2 flex items-center justify-between text-[13px] font-medium ${ui.label}`}
+              >
+                <span>零食掉落间隔</span>
+                <span className={ui.textPrimary}>{pet.dropFrequency} 秒</span>
+              </label>
+              <input
+                id="drop-frequency"
+                type="range"
+                min={10}
+                max={120}
+                step={5}
+                value={pet.dropFrequency}
+                onChange={(event) =>
+                  setDropFrequency(Number(event.target.value))
+                }
+                className="w-full accent-violet-500"
+              />
+              <p className={`mt-2 text-[12px] ${ui.label}`}>
+                太快可能会长胖哦～建议 30 秒左右
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-3 text-[13px]">
               <div className={`rounded-xl border px-3 py-2 ${ui.cardInner}`}>
@@ -165,12 +221,7 @@ export default function SettingsPanel() {
               <p className={`text-[13px] font-medium ${ui.label}`}>状态监控仪</p>
               <StatBar label="Hunger 饥饿" value={pet.hunger} tone="amber" />
               <StatBar label="Energy 精力" value={pet.energy} tone="sky" />
-              <StatBar label="XP 经验" value={pet.xp} tone="violet" max={pet.level * 100} />
             </div>
-
-            <p className={`text-[12px] leading-relaxed ${ui.label}`}>
-              玩法提示：右下角可拖动小幽灵；长按 800ms 触发随机彩蛋；天上会掉落食物，点击喂它升级。
-            </p>
           </div>
         </div>
       </div>

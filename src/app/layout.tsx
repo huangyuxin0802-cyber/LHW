@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import GhostPet from "@/components/GhostPet";
+import GlobalFloatingPet from "@/components/GlobalFloatingPet";
 import { PetProvider } from "@/components/PetProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
@@ -46,7 +46,7 @@ export default function RootLayout({
         <ThemeProvider>
           <PetProvider>
             {children}
-            <GhostPet />
+            <GlobalFloatingPet />
           </PetProvider>
         </ThemeProvider>
       </body>

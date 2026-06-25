@@ -105,7 +105,11 @@ export async function POST(req: Request) {
         ? Math.max(0, Math.min(100, body.energy))
         : 100;
     const level =
-      typeof body.level === "number" ? Math.max(1, Math.floor(body.level)) : 1;
+      typeof body.login_days === "number"
+        ? Math.max(1, Math.floor(body.login_days))
+        : typeof body.level === "number"
+          ? Math.max(1, Math.floor(body.level))
+          : 1;
     const lastFoodEaten =
       typeof body.last_food_eaten === "string"
         ? body.last_food_eaten

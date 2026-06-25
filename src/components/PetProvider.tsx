@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import {
+  applyDailyLogin,
   applyOfflineDecay,
   clampPet,
   computeMoodState,
@@ -17,12 +18,14 @@ import {
   savePetToStorage,
   savePetToSupabase,
 } from "@/lib/pet-status";
-import type { PetPersonality, PetStatus } from "@/types/pet";
+import type { PetAvatar, PetPersonality, PetStatus } from "@/types/pet";
 
 type PetContextValue = {
   pet: PetStatus;
   hydrated: boolean;
   setPersonality: (personality: PetPersonality) => void;
+  setAvatar: (avatar: PetAvatar) => void;
+  setDropFrequency: (seconds: number) => void;
   feedPet: (foodLabel: string, hungerAmount?: number) => void;
   patchPet: (
     patch: Partial<Pick<PetStatus, "hunger" | "energy" | "moodState">>
@@ -39,22 +42,27 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function hydrate() {
-      const local = applyOfflineDecay(loadPetFromStorage());
+      const local = applyDailyLogin(applyOfflineDecay(loadPetFromStorage()));
       if (!cancelled) {
         setPet(local);
       }
 
       const remote = await loadPetFromSupabase();
       if (!cancelled && remote) {
-        const merged = applyOfflineDecay(
-          clampPet({
-            ...remote,
-            hunger: Math.min(local.hunger, remote.hunger),
-            energy: Math.min(local.energy, remote.energy),
-            xp: Math.max(local.xp, remote.xp),
-          })
+        const merged = applyDailyLogin(
+          applyOfflineDecay(
+            clampPet({
+              ...remote,
+              hunger: Math.min(local.hunger, remote.hunger),
+              energy: Math.min(local.energy, remote.energy),
+              xp: Math.max(local.xp, remote.xp),
+              loginDays: Math.max(local.loginDays, remote.loginDays),
+            })
+          )
         );
         setPet(merged);
+      } else if (!cancelled) {
+        setPet((prev) => applyDailyLogin(prev));
       }
 
       if (!cancelled) {
@@ -111,6 +119,26 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const setAvatar = useCallback((avatar: PetAvatar) => {
+    setPet((prev) =>
+      clampPet({
+        ...prev,
+        avatar,
+        lastUpdated: new Date().toISOString(),
+      })
+    );
+  }, []);
+
+  const setDropFrequency = useCallback((seconds: number) => {
+    setPet((prev) =>
+      clampPet({
+        ...prev,
+        dropFrequency: seconds,
+        lastUpdated: new Date().toISOString(),
+      })
+    );
+  }, []);
+
   const feedPet = useCallback((foodLabel: string, hungerAmount = 15) => {
     setPet((prev) => {
       const hunger = prev.hunger + hungerAmount;
@@ -151,10 +179,12 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       pet,
       hydrated,
       setPersonality,
+      setAvatar,
+      setDropFrequency,
       feedPet,
       patchPet,
     }),
-    [pet, hydrated, setPersonality, feedPet, patchPet]
+    [pet, hydrated, setPersonality, setAvatar, setDropFrequency, feedPet, patchPet]
   );
 
   return <PetContext.Provider value={value}>{children}</PetContext.Provider>;
