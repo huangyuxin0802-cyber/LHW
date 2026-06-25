@@ -427,10 +427,10 @@ export default function DiscountMap() {
                       开启定位后可显示从你的位置出发的真实路程时间。
                     </p>
                   ) : travelLoading ? (
-                    <p className="mt-2 text-sm text-zinc-500">正在从 Google Maps 获取路线…</p>
+                    <p className="mt-2 text-sm text-zinc-500">正在从 LocationIQ 获取路线…</p>
                   ) : travelEstimates.length === 0 ? (
                     <p className="mt-2 text-sm text-zinc-600">
-                      路线时间暂不可用，请配置 Google Maps API 后重试。
+                      路线时间暂不可用，请配置 LocationIQ API Key 后重试。
                     </p>
                   ) : (
                     <div className="mt-2 space-y-1 text-sm text-zinc-700">

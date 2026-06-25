@@ -23,6 +23,14 @@ export function formatDuration(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
+function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
 export function buildGoogleMapsDirectionsUrl({
   originLat,
   originLng,
@@ -49,85 +57,77 @@ export function buildGoogleMapsDirectionsUrl({
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
-type GoogleDirectionsResponse = {
-  status: string;
+type LocationIqDirectionsResponse = {
+  code?: string;
   routes?: Array<{
-    legs?: Array<{
-      duration?: { value: number; text: string };
-      duration_in_traffic?: { value: number; text: string };
-      distance?: { value: number; text: string };
-    }>;
+    duration?: number;
+    distance?: number;
   }>;
 };
 
-async function fetchGoogleDirection(
+const LOCATIONIQ_BASE_URL =
+  process.env.LOCATIONIQ_BASE_URL ?? "https://us1.locationiq.com/v1";
+
+async function fetchLocationIqDirection(
   apiKey: string,
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number,
-  mode: "driving" | "walking",
+  profile: "driving" | "walking",
   label: string
 ): Promise<TravelEstimate | null> {
+  const coordinates = `${fromLng},${fromLat};${toLng},${toLat}`;
   const params = new URLSearchParams({
-    origin: `${fromLat},${fromLng}`,
-    destination: `${toLat},${toLng}`,
-    mode,
     key: apiKey,
-    language: "en-AU",
-    region: "au",
+    overview: "false",
+    annotations: "false",
   });
 
-  if (mode === "driving") {
-    params.set("departure_time", "now");
-  }
-
   const response = await fetch(
-    `https://maps.googleapis.com/maps/api/directions/json?${params.toString()}`,
+    `${LOCATIONIQ_BASE_URL}/directions/${profile}/${coordinates}?${params.toString()}`,
     { next: { revalidate: 120 } }
   );
 
   if (!response.ok) {
+    console.error("LocationIQ Directions HTTP error:", response.status);
     return null;
   }
 
-  const data = (await response.json()) as GoogleDirectionsResponse;
-  if (data.status !== "OK") {
-    console.error("Google Directions error:", data.status);
+  const data = (await response.json()) as LocationIqDirectionsResponse;
+  const route = data.routes?.[0];
+
+  if (!route?.duration || route.distance == null) {
+    console.error("LocationIQ Directions error:", data.code ?? "no route");
     return null;
   }
 
-  const leg = data.routes?.[0]?.legs?.[0];
-  if (!leg?.duration || !leg.distance) {
-    return null;
-  }
-
-  const duration = leg.duration_in_traffic ?? leg.duration;
+  const durationMinutes = route.duration / 60;
 
   return {
-    mode,
-    durationMinutes: duration.value / 60,
-    durationText: duration.text,
-    distanceKm: leg.distance.value / 1000,
-    distanceText: leg.distance.text,
+    mode: profile,
+    durationMinutes,
+    durationText: formatDuration(durationMinutes),
+    distanceKm: route.distance / 1000,
+    distanceText: formatDistance(route.distance),
     label,
   };
 }
 
-export async function fetchGoogleTravelEstimates(
+export async function fetchLocationIqTravelEstimates(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<TravelEstimate[]> {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.LOCATIONIQ_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GOOGLE_MAPS_API_KEY is not configured");
+    throw new Error("LOCATIONIQ_API_KEY is not configured");
   }
 
   const results = await Promise.all([
-    fetchGoogleDirection(
+    fetchLocationIqDirection(
       apiKey,
       fromLat,
       fromLng,
@@ -136,7 +136,7 @@ export async function fetchGoogleTravelEstimates(
       "driving",
       "驾车"
     ),
-    fetchGoogleDirection(
+    fetchLocationIqDirection(
       apiKey,
       fromLat,
       fromLng,
