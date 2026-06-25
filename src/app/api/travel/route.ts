@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchLocationIqTravelEstimates } from "@/lib/travel-utils";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const fromLat = Number(searchParams.get("fromLat"));

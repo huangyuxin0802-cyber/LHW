@@ -154,8 +154,16 @@ export default function DiscountMap() {
     fetch(
       `/api/availability?platform=${encodeURIComponent(selectedRestaurant.platform)}&url=${encodeURIComponent(selectedRestaurant.booking_url)}`
     )
-      .then((response) => response.json())
-      .then((data: PlatformAvailability) => {
+      .then(async (response) => {
+        const data = (await response.json()) as PlatformAvailability & {
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? "availability fetch failed");
+        }
+        return data;
+      })
+      .then((data) => {
         if (!cancelled) {
           setAvailability(data);
         }
@@ -194,10 +202,19 @@ export default function DiscountMap() {
     });
 
     fetch(`/api/travel?${params.toString()}`)
-      .then((response) => response.json())
-      .then((data: { estimates?: TravelEstimate[] }) => {
+      .then(async (response) => {
+        const data = (await response.json()) as {
+          estimates?: TravelEstimate[];
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? "travel fetch failed");
+        }
+        return data.estimates ?? [];
+      })
+      .then((estimates) => {
         if (!cancelled) {
-          setTravelEstimates(data.estimates ?? []);
+          setTravelEstimates(estimates);
         }
       })
       .catch((error) => {
@@ -326,6 +343,13 @@ export default function DiscountMap() {
   const selectedHeroImage = selectedRestaurant
     ? getRestaurantImage(selectedRestaurant)
     : null;
+  const showLiveCommute = travelEstimates.length > 0;
+  const commuteDriveText = showLiveCommute
+    ? drivingEstimate?.durationText
+    : selectedRestaurant?.mock_drive_time;
+  const commuteTransitText = showLiveCommute
+    ? null
+    : selectedRestaurant?.mock_transit_info;
 
   return (
     <div className="relative h-screen w-full">
@@ -400,11 +424,11 @@ export default function DiscountMap() {
             className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none [&_.maplibregl-popup-content]:pointer-events-auto"
           >
             <div
-              className="flex h-[11.5rem] w-[min(calc(100vw-0.75rem),40rem)] overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-2xl sm:h-[12.5rem] sm:w-[min(calc(100vw-1rem),44rem)]"
+              className="flex h-[14rem] w-[min(calc(100vw-0.75rem),42rem)] overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-2xl sm:h-[15rem] sm:w-[min(calc(100vw-1rem),46rem)]"
               onClick={(event) => event.stopPropagation()}
             >
               {selectedHeroImage && (
-                <div className="relative h-full w-28 shrink-0 bg-zinc-100 sm:w-32">
+                <div className="relative h-full w-24 shrink-0 bg-zinc-100 sm:w-28">
                   <img
                     src={selectedHeroImage}
                     alt={selectedRestaurant.restaurant_name}
@@ -415,8 +439,8 @@ export default function DiscountMap() {
                 </div>
               )}
 
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 p-2.5 sm:p-3">
-                <div className="min-w-0">
+              <div className="flex min-w-0 flex-1 flex-col p-2.5 sm:p-3">
+                <div className="shrink-0">
                   <div className="flex items-center gap-2">
                     <h2 className="truncate text-sm font-bold text-zinc-900 sm:text-base">
                       {selectedRestaurant.restaurant_name}
@@ -431,109 +455,114 @@ export default function DiscountMap() {
                       {selectedRestaurant.platform}
                     </span>
                   </div>
-
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
-                    {selectedRestaurant.cuisine && (
-                      <span className="uppercase tracking-wide">
-                        {selectedRestaurant.cuisine}
-                      </span>
-                    )}
-                    {selectedRestaurant.description && (
-                      <span className="line-clamp-1 text-zinc-600 normal-case">
-                        {selectedRestaurant.description}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="mt-1 truncate text-xs font-bold text-emerald-700 sm:text-sm">
+                  <p className="mt-0.5 truncate text-xs font-bold text-emerald-700">
                     {selectedRestaurant.discount_text}
                   </p>
                 </div>
 
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
-                  <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-amber-50 px-2.5 py-2">
-                    <p className="text-[10px] font-semibold text-amber-800">
+                <div className="mt-2 grid h-[6.75rem] shrink-0 grid-cols-2 gap-2 sm:h-[7.25rem]">
+                  <div className="flex flex-col rounded-2xl bg-amber-50 px-2.5 py-2">
+                    <p className="shrink-0 text-[11px] font-bold text-amber-900">
                       🍽 用餐时间
                     </p>
-                    {availabilityLoading ? (
-                      <p className="mt-1 text-xs text-zinc-500">正在查询可订时段…</p>
-                    ) : availability && availability.slots.length > 0 ? (
-                      <div className="mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto">
-                        {availability.slots.slice(0, 3).map((slot) => (
-                          <p
-                            key={`${slot.label}-${slot.detail ?? ""}`}
-                            className="text-xs leading-tight text-zinc-800"
-                          >
-                            {slot.available ? "✅" : "⛔"} {slot.label}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-1 text-xs leading-tight text-zinc-600">
-                        {availability?.summary ?? "暂无法读取今日用餐时段"}
-                      </p>
-                    )}
+                    <div className="mt-1 min-h-0 flex-1 overflow-y-auto">
+                      {availabilityLoading ? (
+                        <p className="text-xs text-zinc-500">正在查询…</p>
+                      ) : availability && availability.slots.length > 0 ? (
+                        <div className="space-y-1">
+                          {availability.slots.map((slot) => (
+                            <p
+                              key={`${slot.label}-${slot.detail ?? ""}`}
+                              className="text-[11px] leading-snug text-zinc-800 sm:text-xs"
+                            >
+                              {slot.available ? "✅" : "⛔"} {slot.label}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] leading-snug text-zinc-600 sm:text-xs">
+                          {availability?.summary ??
+                            "暂无法读取，请点 Claim 查看预订页"}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-sky-50 px-2.5 py-2">
-                    <p className="text-[10px] font-semibold text-sky-800">
+                  <div className="flex flex-col rounded-2xl bg-sky-50 px-2.5 py-2">
+                    <p className="shrink-0 text-[11px] font-bold text-sky-900">
                       🚗 通勤预计
                     </p>
-                    {!userLocation ? (
-                      <p className="mt-1 text-xs leading-tight text-zinc-600">
-                        开启定位后显示驾车/步行时间与预计到达时刻
-                      </p>
-                    ) : travelLoading ? (
-                      <p className="mt-1 text-xs text-zinc-500">正在计算路线…</p>
-                    ) : travelEstimates.length === 0 ? (
-                      <p className="mt-1 text-xs leading-tight text-zinc-600">
-                        路线暂不可用，请点下方导航查看
-                      </p>
-                    ) : (
-                      <div className="mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto text-xs text-zinc-800">
-                        {drivingEstimate && (
-                          <p className="flex items-start gap-1 leading-tight">
-                            <Car className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                            <span>
-                              驾车 {drivingEstimate.durationText}
-                              <span className="text-zinc-500">
-                                {" "}
-                                · 现在出发约 {formatArrivalTime(drivingEstimate.durationMinutes)} 到
+                    <div className="mt-1 min-h-0 flex-1 overflow-y-auto text-[11px] leading-snug text-zinc-800 sm:text-xs">
+                      {travelLoading ? (
+                        <p className="text-zinc-500">正在计算路线…</p>
+                      ) : showLiveCommute ? (
+                        <div className="space-y-1">
+                          {drivingEstimate && (
+                            <p>
+                              <span className="inline-flex items-center gap-1 font-medium">
+                                <Car className="h-3 w-3" />
+                                驾车 {drivingEstimate.durationText}
                               </span>
-                            </span>
-                          </p>
-                        )}
-                        {walkingEstimate && (
-                          <p className="flex items-start gap-1 leading-tight">
-                            <Footprints className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                            <span>
-                              步行 {walkingEstimate.durationText}
-                              <span className="text-zinc-500">
-                                {" "}
-                                · 约 {formatArrivalTime(walkingEstimate.durationMinutes)} 到
+                              <span className="block text-zinc-500">
+                                现在出发约{" "}
+                                {formatArrivalTime(drivingEstimate.durationMinutes)}{" "}
+                                到
                               </span>
-                            </span>
-                          </p>
-                        )}
-                        {(() => {
-                          const distance = getLiveDistance(selectedRestaurant);
-                          if (distance == null) {
-                            return null;
-                          }
-
-                          return (
-                            <p className="flex items-center gap-1 text-zinc-500">
-                              <MapPin className="h-3.5 w-3.5 shrink-0" />
-                              直线 {formatDistanceKm(distance)}
                             </p>
-                          );
-                        })()}
-                      </div>
-                    )}
+                          )}
+                          {walkingEstimate && (
+                            <p>
+                              <span className="inline-flex items-center gap-1 font-medium">
+                                <Footprints className="h-3 w-3" />
+                                步行 {walkingEstimate.durationText}
+                              </span>
+                            </p>
+                          )}
+                          {(() => {
+                            const distance = getLiveDistance(selectedRestaurant);
+                            if (distance == null) {
+                              return null;
+                            }
+
+                            return (
+                              <p className="flex items-center gap-1 text-zinc-500">
+                                <MapPin className="h-3 w-3" />
+                                直线 {formatDistanceKm(distance)}
+                              </p>
+                            );
+                          })()}
+                        </div>
+                      ) : commuteDriveText || commuteTransitText ? (
+                        <div className="space-y-1">
+                          {commuteDriveText && (
+                            <p>
+                              <span className="inline-flex items-center gap-1 font-medium">
+                                <Car className="h-3 w-3" />
+                                驾车约 {commuteDriveText}
+                              </span>
+                              {!userLocation && (
+                                <span className="block text-zinc-500">
+                                  开启定位可看实时
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {commuteTransitText && (
+                            <p className="text-zinc-600">🚌 {commuteTransitText}</p>
+                          )}
+                        </div>
+                      ) : !userLocation ? (
+                        <p className="text-zinc-600">
+                          点右上角「我的位置」开启定位，显示实时通勤
+                        </p>
+                      ) : (
+                        <p className="text-zinc-600">路线暂不可用，请用下方导航</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="mt-2 flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() =>
