@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Map, { Marker, Popup, type MapRef } from "react-map-gl/maplibre";
-import { Car, Crosshair, Footprints, MapPin, Train } from "lucide-react";
+import { Car, Crosshair, Footprints, MapPin } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import supabase from "@/lib/supabaseClient";
 import { formatDistanceKm, haversineKm } from "@/lib/geo-utils";
@@ -390,11 +390,11 @@ export default function DiscountMap() {
             className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none [&_.maplibregl-popup-content]:pointer-events-auto"
           >
             <div
-              className="flex w-[min(calc(100vw-1.5rem),32rem)] max-h-[min(calc(100dvh-5rem),34rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+              className="flex h-[9.5rem] w-[min(calc(100vw-0.75rem),38rem)] overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-2xl sm:h-[10.5rem] sm:w-[min(calc(100vw-1rem),42rem)]"
               onClick={(event) => event.stopPropagation()}
             >
               {selectedHeroImage && (
-                <div className="relative h-28 w-full shrink-0 overflow-hidden bg-zinc-100 sm:h-32">
+                <div className="relative h-full w-28 shrink-0 bg-zinc-100 sm:w-32">
                   <img
                     src={selectedHeroImage}
                     alt={selectedRestaurant.restaurant_name}
@@ -404,145 +404,124 @@ export default function DiscountMap() {
                   />
                 </div>
               )}
-              <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="p-3 sm:p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-bold leading-tight text-zinc-900 sm:text-xl">
-                    {selectedRestaurant.restaurant_name}
-                  </h2>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
-                      selectedRestaurant.platform === "First Table"
-                        ? "bg-blue-700"
-                        : "bg-orange-500"
-                    }`}
-                  >
-                    {selectedRestaurant.platform}
-                  </span>
-                </div>
 
-                {selectedRestaurant.cuisine && (
-                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                    {selectedRestaurant.cuisine}
-                  </p>
-                )}
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 p-2.5 sm:p-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate text-sm font-bold text-zinc-900 sm:text-base">
+                      {selectedRestaurant.restaurant_name}
+                    </h2>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white sm:text-xs ${
+                        selectedRestaurant.platform === "First Table"
+                          ? "bg-blue-700"
+                          : "bg-orange-500"
+                      }`}
+                    >
+                      {selectedRestaurant.platform}
+                    </span>
+                  </div>
 
-                {selectedRestaurant.description && (
-                  <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-600">
-                    {selectedRestaurant.description}
-                  </p>
-                )}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
+                    {selectedRestaurant.cuisine && (
+                      <span className="uppercase tracking-wide">
+                        {selectedRestaurant.cuisine}
+                      </span>
+                    )}
+                    {selectedRestaurant.description && (
+                      <span className="line-clamp-1 text-zinc-600 normal-case">
+                        {selectedRestaurant.description}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="mt-2.5 rounded-xl bg-emerald-50 px-3 py-2">
-                  <p className="text-sm font-bold text-emerald-700">
+                  <p className="mt-1 truncate text-xs font-bold text-emerald-700 sm:text-sm">
                     {selectedRestaurant.discount_text}
                   </p>
                 </div>
 
-                <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
-                <div className="rounded-xl bg-zinc-50 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                    平台空位 / 优惠时段
-                  </p>
-                  {availabilityLoading ? (
-                    <p className="mt-1.5 text-sm text-zinc-500">正在连接平台…</p>
-                  ) : availability ? (
-                    <div className="mt-1.5 space-y-1.5">
-                      <p className="text-xs text-zinc-600">{availability.summary}</p>
-                      {availability.slots.map((slot) => (
-                        <div
-                          key={`${slot.label}-${slot.detail ?? ""}`}
-                          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5"
-                        >
-                          <p className="text-xs font-medium text-zinc-800 sm:text-sm">
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden">
+                  <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-50 px-2 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                      空位 / 时段
+                    </p>
+                    {availabilityLoading ? (
+                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                        连接中…
+                      </p>
+                    ) : availability ? (
+                      <div className="mt-0.5 space-y-0.5 overflow-hidden">
+                        {availability.slots.slice(0, 2).map((slot) => (
+                          <p
+                            key={`${slot.label}-${slot.detail ?? ""}`}
+                            className="truncate text-[11px] text-zinc-700"
+                          >
                             {slot.available ? "✅" : "⛔"} {slot.label}
                           </p>
-                          {slot.detail &&
-                            selectedRestaurant.platform === "First Table" && (
-                              <p className="mt-0.5 text-[11px] text-zinc-500">
-                                {slot.detail}
-                              </p>
-                            )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-1.5 text-sm text-zinc-500">
-                      暂时无法读取平台数据，请直接打开预订页。
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                        暂无法读取
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 overflow-hidden rounded-2xl bg-sky-50 px-2 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                      路线
                     </p>
-                  )}
+                    {!userLocation ? (
+                      <p className="mt-0.5 truncate text-[11px] text-zinc-600">
+                        开启定位
+                      </p>
+                    ) : travelLoading ? (
+                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                        计算中…
+                      </p>
+                    ) : (
+                      <div className="mt-0.5 space-y-0.5 overflow-hidden text-[11px] text-zinc-700">
+                        {drivingEstimate && (
+                          <p className="flex items-center gap-1 truncate">
+                            <Car className="h-3 w-3 shrink-0" />
+                            驾车 {drivingEstimate.durationText}
+                          </p>
+                        )}
+                        {walkingEstimate && (
+                          <p className="flex items-center gap-1 truncate">
+                            <Footprints className="h-3 w-3 shrink-0" />
+                            步行 {walkingEstimate.durationText}
+                          </p>
+                        )}
+                        {(() => {
+                          const distance = getLiveDistance(selectedRestaurant);
+                          if (distance == null) {
+                            return null;
+                          }
+
+                          return (
+                            <p className="flex items-center gap-1 truncate text-zinc-500">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {formatDistanceKm(distance)}
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="rounded-xl bg-sky-50 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                    路线预估
-                  </p>
-                  {!userLocation ? (
-                    <p className="mt-1.5 text-sm text-zinc-600">
-                      开启定位后可显示从你的位置出发的真实路程时间。
-                    </p>
-                  ) : travelLoading ? (
-                    <p className="mt-1.5 text-sm text-zinc-500">正在从 LocationIQ 获取路线…</p>
-                  ) : travelEstimates.length === 0 ? (
-                    <p className="mt-1.5 text-sm text-zinc-600">
-                      路线时间暂不可用，请配置 LocationIQ API Key 后重试。
-                    </p>
-                  ) : (
-                    <div className="mt-1.5 space-y-1 text-sm text-zinc-700">
-                      {drivingEstimate && (
-                        <p className="flex items-center gap-2">
-                          <Car className="h-4 w-4" />
-                          驾车 {drivingEstimate.durationText}
-                          <span className="text-zinc-400">
-                            ({drivingEstimate.distanceText})
-                          </span>
-                        </p>
-                      )}
-                      {walkingEstimate && (
-                        <p className="flex items-center gap-2">
-                          <Footprints className="h-4 w-4" />
-                          步行 {walkingEstimate.durationText}
-                          <span className="text-zinc-400">
-                            ({walkingEstimate.distanceText})
-                          </span>
-                        </p>
-                      )}
-                      <p className="flex items-center gap-2 text-zinc-600">
-                        <Train className="h-4 w-4" />
-                        公交请在 Google Maps 查看实时班次
-                      </p>
-                    </div>
-                  )}
-
-                  {(() => {
-                    const distance = getLiveDistance(selectedRestaurant);
-                    if (distance == null) {
-                      return null;
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openExternalUrl(selectedRestaurant.booking_url)
                     }
+                    className="min-w-0 flex-1 truncate rounded-2xl bg-zinc-900 px-2.5 py-1.5 text-center text-[11px] font-semibold text-white transition hover:bg-zinc-800 sm:text-xs"
+                  >
+                    Claim Discount
+                  </button>
 
-                    return (
-                      <p className="mt-1.5 flex items-center gap-1 text-xs text-zinc-500">
-                        <MapPin className="h-3.5 w-3.5" />
-                        直线距离 {formatDistanceKm(distance)}
-                      </p>
-                    );
-                  })()}
-                </div>
-                </div>
-              </div>
-
-              <div className="shrink-0 border-t border-zinc-100 p-2.5 sm:p-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    openExternalUrl(selectedRestaurant.booking_url)
-                  }
-                  className="mb-2 w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-zinc-800"
-                >
-                  Claim Discount
-                </button>
-
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   {(["driving", "transit", "walking"] as const).map((mode) => (
                     <button
                       key={mode}
@@ -558,17 +537,16 @@ export default function DiscountMap() {
                           })
                         )
                       }
-                      className="rounded-xl border border-zinc-200 bg-white px-2 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50"
+                      className="shrink-0 rounded-2xl border border-zinc-200 bg-white px-2 py-1.5 text-[10px] font-semibold text-zinc-800 transition hover:bg-zinc-50 sm:text-[11px]"
                     >
                       {mode === "driving"
-                        ? "驾车导航"
+                        ? "驾车"
                         : mode === "transit"
-                          ? "公交导航"
-                          : "步行导航"}
+                          ? "公交"
+                          : "步行"}
                     </button>
                   ))}
                 </div>
-              </div>
               </div>
             </div>
           </Popup>
