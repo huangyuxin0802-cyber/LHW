@@ -50,6 +50,16 @@ function getRestaurantImage(restaurant: DailyDiscount) {
   return restaurant.image_url ?? RESTAURANT_IMAGES[restaurant.restaurant_name] ?? null;
 }
 
+function formatArrivalTime(minutesFromNow: number) {
+  const arrival = new Date(Date.now() + minutesFromNow * 60_000);
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Australia/Brisbane",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(arrival);
+}
+
 function PlatformMarker({
   platform,
   onClick,
@@ -390,7 +400,7 @@ export default function DiscountMap() {
             className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none [&_.maplibregl-popup-content]:pointer-events-auto"
           >
             <div
-              className="flex h-[9.5rem] w-[min(calc(100vw-0.75rem),38rem)] overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-2xl sm:h-[10.5rem] sm:w-[min(calc(100vw-1rem),42rem)]"
+              className="flex h-[11.5rem] w-[min(calc(100vw-0.75rem),40rem)] overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-2xl sm:h-[12.5rem] sm:w-[min(calc(100vw-1rem),44rem)]"
               onClick={(event) => event.stopPropagation()}
             >
               {selectedHeroImage && (
@@ -440,57 +450,69 @@ export default function DiscountMap() {
                   </p>
                 </div>
 
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden">
-                  <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-50 px-2 py-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                      空位 / 时段
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
+                  <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-amber-50 px-2.5 py-2">
+                    <p className="text-[10px] font-semibold text-amber-800">
+                      🍽 用餐时间
                     </p>
                     {availabilityLoading ? (
-                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
-                        连接中…
-                      </p>
-                    ) : availability ? (
-                      <div className="mt-0.5 space-y-0.5 overflow-hidden">
-                        {availability.slots.slice(0, 2).map((slot) => (
+                      <p className="mt-1 text-xs text-zinc-500">正在查询可订时段…</p>
+                    ) : availability && availability.slots.length > 0 ? (
+                      <div className="mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto">
+                        {availability.slots.slice(0, 3).map((slot) => (
                           <p
                             key={`${slot.label}-${slot.detail ?? ""}`}
-                            className="truncate text-[11px] text-zinc-700"
+                            className="text-xs leading-tight text-zinc-800"
                           >
                             {slot.available ? "✅" : "⛔"} {slot.label}
                           </p>
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
-                        暂无法读取
+                      <p className="mt-1 text-xs leading-tight text-zinc-600">
+                        {availability?.summary ?? "暂无法读取今日用餐时段"}
                       </p>
                     )}
                   </div>
 
-                  <div className="min-w-0 overflow-hidden rounded-2xl bg-sky-50 px-2 py-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                      路线
+                  <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-sky-50 px-2.5 py-2">
+                    <p className="text-[10px] font-semibold text-sky-800">
+                      🚗 通勤预计
                     </p>
                     {!userLocation ? (
-                      <p className="mt-0.5 truncate text-[11px] text-zinc-600">
-                        开启定位
+                      <p className="mt-1 text-xs leading-tight text-zinc-600">
+                        开启定位后显示驾车/步行时间与预计到达时刻
                       </p>
                     ) : travelLoading ? (
-                      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
-                        计算中…
+                      <p className="mt-1 text-xs text-zinc-500">正在计算路线…</p>
+                    ) : travelEstimates.length === 0 ? (
+                      <p className="mt-1 text-xs leading-tight text-zinc-600">
+                        路线暂不可用，请点下方导航查看
                       </p>
                     ) : (
-                      <div className="mt-0.5 space-y-0.5 overflow-hidden text-[11px] text-zinc-700">
+                      <div className="mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto text-xs text-zinc-800">
                         {drivingEstimate && (
-                          <p className="flex items-center gap-1 truncate">
-                            <Car className="h-3 w-3 shrink-0" />
-                            驾车 {drivingEstimate.durationText}
+                          <p className="flex items-start gap-1 leading-tight">
+                            <Car className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span>
+                              驾车 {drivingEstimate.durationText}
+                              <span className="text-zinc-500">
+                                {" "}
+                                · 现在出发约 {formatArrivalTime(drivingEstimate.durationMinutes)} 到
+                              </span>
+                            </span>
                           </p>
                         )}
                         {walkingEstimate && (
-                          <p className="flex items-center gap-1 truncate">
-                            <Footprints className="h-3 w-3 shrink-0" />
-                            步行 {walkingEstimate.durationText}
+                          <p className="flex items-start gap-1 leading-tight">
+                            <Footprints className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span>
+                              步行 {walkingEstimate.durationText}
+                              <span className="text-zinc-500">
+                                {" "}
+                                · 约 {formatArrivalTime(walkingEstimate.durationMinutes)} 到
+                              </span>
+                            </span>
                           </p>
                         )}
                         {(() => {
@@ -500,9 +522,9 @@ export default function DiscountMap() {
                           }
 
                           return (
-                            <p className="flex items-center gap-1 truncate text-zinc-500">
-                              <MapPin className="h-3 w-3 shrink-0" />
-                              {formatDistanceKm(distance)}
+                            <p className="flex items-center gap-1 text-zinc-500">
+                              <MapPin className="h-3.5 w-3.5 shrink-0" />
+                              直线 {formatDistanceKm(distance)}
                             </p>
                           );
                         })()}
