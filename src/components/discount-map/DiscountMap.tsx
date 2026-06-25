@@ -27,6 +27,7 @@ type DailyDiscount = {
   description: string | null;
   mock_drive_time: string | null;
   mock_transit_info: string | null;
+  image_url: string | null;
 };
 
 const BRISBANE_CENTER = {
@@ -36,6 +37,18 @@ const BRISBANE_CENTER = {
 };
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/bright";
+
+const RESTAURANT_IMAGES: Record<string, string> = {
+  "The Lex":
+    "https://images.firsttable.net/1292x800/public/restaurant/36e6e7bf08/Facetune_08-05-2026-14-05-14.jpeg",
+  Ciao: "https://eccdn.com.au/images/C400B823-82FB-47A5-BAEF-16D79F9586FE/C400B823-82FB-47A5-BAEF-16D79F9586FE_image_3_1775021008863.jpg",
+  "Lennons Restaurant & Bar":
+    "https://images.firsttable.net/1292x800/public/restaurant/3bdc2910e8/Photo-size-for-QR-codes-2025-07-21T130515.902.jpg",
+};
+
+function getRestaurantImage(restaurant: DailyDiscount) {
+  return restaurant.image_url ?? RESTAURANT_IMAGES[restaurant.restaurant_name] ?? null;
+}
 
 function PlatformMarker({
   platform,
@@ -53,6 +66,7 @@ function PlatformMarker({
         event.stopPropagation();
         onClick();
       }}
+      data-restaurant-marker
       className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-white shadow-lg transition hover:scale-110 ${
         isFirstTable
           ? "bg-blue-700 ring-2 ring-blue-300/50"
@@ -101,7 +115,7 @@ export default function DiscountMap() {
       const { data, error } = await supabase
         .from("daily_discounts")
         .select(
-          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance, cuisine, description, mock_drive_time, mock_transit_info"
+          "id, restaurant_name, latitude, longitude, platform, discount_text, booking_url, distance, cuisine, description, mock_drive_time, mock_transit_info, image_url"
         );
 
       if (error) {
@@ -236,6 +250,31 @@ export default function DiscountMap() {
     }
   }, [userLocation, hasCenteredOnUser, centerOnUser]);
 
+  useEffect(() => {
+    if (!selectedRestaurant) {
+      return;
+    }
+
+    const dismissPopup = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (
+        target.closest(".maplibregl-popup") ||
+        target.closest("[data-restaurant-marker]")
+      ) {
+        return;
+      }
+
+      setSelectedRestaurant(null);
+    };
+
+    document.addEventListener("pointerdown", dismissPopup, true);
+    return () => document.removeEventListener("pointerdown", dismissPopup, true);
+  }, [selectedRestaurant]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
@@ -274,6 +313,9 @@ export default function DiscountMap() {
 
   const drivingEstimate = travelEstimates.find((item) => item.mode === "driving");
   const walkingEstimate = travelEstimates.find((item) => item.mode === "walking");
+  const selectedHeroImage = selectedRestaurant
+    ? getRestaurantImage(selectedRestaurant)
+    : null;
 
   return (
     <div className="relative h-screen w-full">
@@ -343,7 +385,7 @@ export default function DiscountMap() {
             longitude={selectedRestaurant.longitude}
             anchor="bottom"
             onClose={() => setSelectedRestaurant(null)}
-            closeOnClick={false}
+            closeOnClick
             maxWidth="none"
             className="[&_.maplibregl-popup-content]:!p-0 [&_.maplibregl-popup-content]:!bg-transparent [&_.maplibregl-popup-content]:!shadow-none [&_.maplibregl-popup-content]:pointer-events-auto"
           >
@@ -351,6 +393,17 @@ export default function DiscountMap() {
               className="max-h-[70vh] w-80 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:w-96"
               onClick={(event) => event.stopPropagation()}
             >
+              {selectedHeroImage && (
+                <div className="relative h-44 w-full overflow-hidden rounded-t-2xl bg-zinc-100">
+                  <img
+                    src={selectedHeroImage}
+                    alt={selectedRestaurant.restaurant_name}
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="text-xl font-bold leading-tight text-zinc-900">
