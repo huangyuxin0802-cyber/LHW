@@ -38,16 +38,68 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* MapLibre canvas must not be clipped by global resets */
-.maplibregl-map {
-  position: relative;
+/* Tauri orb: transparent circular floating ball */
+html.desktop-pet-orb,
+html.desktop-pet-orb body,
+body.desktop-pet-body {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+html.desktop-pet-orb,
+html.desktop-pet-orb body {
   width: 100%;
   height: 100%;
 }
 
-.maplibregl-canvas {
-  width: 100% !important;
+body.desktop-pet-body {
+  min-height: 100% !important;
   height: 100% !important;
+  width: 100% !important;
+  display: block !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* Hide Next.js dev "N" badge in tiny orb window */
+html.desktop-pet-orb [data-nextjs-dev-tools-button],
+html.desktop-pet-orb #next-logo,
+html.desktop-pet-orb nextjs-portal {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Tauri panel: transparent window, rounded card rendered in-app */
+html.desktop-pet-panel,
+html.desktop-pet-panel body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html.desktop-pet-orb .tauri-no-drag,
+html.desktop-pet-panel .tauri-no-drag,
+html.desktop-pet-orb [data-tauri-drag-region="false"],
+html.desktop-pet-panel [data-tauri-drag-region="false"] {
+  -webkit-app-region: no-drag;
+}
+
+html.desktop-pet-orb [data-tauri-drag-region]:not([data-tauri-drag-region="false"]),
+html.desktop-pet-panel [data-tauri-drag-region]:not([data-tauri-drag-region="false"]) {
+  -webkit-app-region: drag;
+}
+
+.desktop-panel-glass {
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.16),
+    0 4px 12px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  backdrop-filter: blur(40px) saturate(160%);
 }
 
 @keyframes messageToastIn {

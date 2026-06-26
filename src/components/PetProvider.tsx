@@ -25,10 +25,11 @@ import {
   hasScavengerCoupon,
   shouldTriggerCyberScavenger,
 } from "@/lib/cyber-scavenging";
-import type {
-  PetAvatar,
-  PetPersonality,
-  PetStatus,
+import {
+  DEFAULT_PET_STATUS,
+  type PetAvatar,
+  type PetPersonality,
+  type PetStatus,
 } from "@/types/pet";
 
 type PetContextValue = {
@@ -51,7 +52,7 @@ type PetContextValue = {
 const PetContext = createContext<PetContextValue | null>(null);
 
 export function PetProvider({ children }: { children: React.ReactNode }) {
-  const [pet, setPet] = useState<PetStatus>(() => loadPetFromStorage());
+  const [pet, setPet] = useState<PetStatus>(DEFAULT_PET_STATUS);
   const [hydrated, setHydrated] = useState(false);
   const [scavengerPending, setScavengerPending] = useState(false);
 

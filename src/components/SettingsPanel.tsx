@@ -60,7 +60,7 @@ export default function SettingsPanel() {
   return (
     <section className={`mt-6 ${ui.card}`}>
       <p className={ui.eyebrow}>Settings</p>
-      <h2 className={`mt-2 text-[22px] font-semibold ${ui.textPrimary}`}>
+      <h2 className={`mt-2 text-[22px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100`}>
         网站与电子宠物设置
       </h2>
 
@@ -103,7 +103,7 @@ export default function SettingsPanel() {
           </h3>
 
           <div className={`mt-3 space-y-4 rounded-2xl border p-4 ${ui.cardInner}`}>
-            <div className="flex items-center justify-between rounded-xl bg-violet-500/10 px-3 py-2.5 dark:bg-violet-500/15">
+            <div className="flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2.5 dark:bg-violet-500/15">
               <div>
                 <p className={`text-[14px] font-semibold ${ui.textPrimary}`}>
                   Lv.{pet.loginDays} · 累计登录 {pet.loginDays} 天
@@ -138,7 +138,7 @@ export default function SettingsPanel() {
                         ? item === "puppy"
                           ? "border-yellow-400 bg-yellow-500/15 ring-2 ring-yellow-400/40"
                           : "border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/40"
-                        : "border-zinc-200 hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/20"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-white/10 dark:bg-transparent dark:text-zinc-300 dark:hover:border-white/20"
                     }`}
                   >
                     <span className="text-2xl">

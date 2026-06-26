@@ -35,8 +35,8 @@ export default function ProfilePanel({
         className={ui.card}
       >
         <div className={`mb-8 ${ui.badge}`}>
-          <Sparkles size={12} />
-          Your profile
+          <Sparkles size={12} className="text-violet-500" />
+          个人资料
         </div>
 
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
@@ -50,9 +50,12 @@ export default function ProfilePanel({
             <p className={ui.eyebrow}>Display name</p>
             <h2 className={`mt-2 ${ui.titleLg}`}>
               编辑你的
-              <span className={ui.titleAccent}> 昵称</span>
+              <span className="bg-gradient-to-r from-violet-600 to-violet-500 bg-clip-text font-semibold text-transparent dark:from-violet-300 dark:to-violet-200">
+                {" "}
+                昵称
+              </span>
             </h2>
-            <p className={`mt-3 max-w-lg ${ui.body}`}>
+            <p className={`mt-3 max-w-lg ${ui.subtitle}`}>
               好友在聊天和好友列表中会看到此昵称。支持中文、字母、数字和下划线。
             </p>
 
@@ -73,22 +76,22 @@ export default function ProfilePanel({
         transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         className="mt-4 grid gap-4 sm:grid-cols-2"
       >
-        <div className={ui.cardSm}>
+        <div className={ui.cardAccent}>
           <div className={`flex items-center gap-2 ${ui.eyebrow}`}>
-            <Mail size={12} />
+            <Mail size={12} className="text-sky-500" />
             邮箱
           </div>
-          <p className={`mt-3 break-all text-[16px] font-medium ${ui.textPrimary}`}>
+          <p className={`mt-3 break-all text-[16px] font-medium ${ui.statValueSm}`}>
             {email || "—"}
           </p>
         </div>
 
         <div className={ui.cardSm}>
           <div className={`flex items-center gap-2 ${ui.eyebrow}`}>
-            <Calendar size={12} />
+            <Calendar size={12} className="text-amber-500" />
             注册时间
           </div>
-          <p className={`mt-3 text-[16px] font-medium ${ui.textPrimary}`}>
+          <p className={`mt-3 text-[16px] font-medium ${ui.statValueSm}`}>
             {joinedDate ?? "—"}
           </p>
         </div>

@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState, useTransition } from "react";
 import {
-  loginAction,
-  registerAction,
-  resendConfirmationAction,
+  loginClient,
+  registerClient,
+  resendConfirmationClient,
   type AuthActionState,
-} from "@/app/actions/auth";
+} from "@/lib/auth-client";
 import { ui } from "@/lib/ui";
 
 const initialState: AuthActionState = {};
@@ -24,17 +25,49 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
-  const action = mode === "login" ? loginAction : registerAction;
-  const [state, formAction, isPending] = useActionState(action, initialState);
-  const [resendState, resendAction, isResending] = useActionState(
-    resendConfirmationAction,
-    initialState
-  );
+  const router = useRouter();
+  const [state, setState] = useState<AuthActionState>(initialState);
+  const [resendState, setResendState] = useState<AuthActionState>(initialState);
+  const [isPending, startTransition] = useTransition();
+  const [isResending, startResendTransition] = useTransition();
 
   const isLogin = mode === "login";
   const displayError = state.error ?? resendState.error ?? callbackError;
   const displaySuccess = state.success ?? resendState.success;
   const pendingEmail = state.pendingEmail ?? resendState.pendingEmail;
+
+  const handleSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+
+      startTransition(async () => {
+        const result = isLogin
+          ? await loginClient(formData)
+          : await registerClient(formData);
+
+        if (result.redirectTo) {
+          router.push(result.redirectTo);
+          return;
+        }
+
+        setState(result);
+      });
+    },
+    [isLogin, router]
+  );
+
+  const handleResend = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+
+      startResendTransition(async () => {
+        setResendState(await resendConfirmationClient(formData));
+      });
+    },
+    []
+  );
 
   return (
     <div className="w-full max-w-[400px]">
@@ -58,7 +91,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
       </div>
 
       <div className={ui.card}>
-        <form action={formAction} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {!isLogin && (
             <div>
               <label htmlFor="username" className={`mb-2 block ${ui.label}`}>
@@ -139,7 +172,7 @@ export function AuthForm({ mode, next, callbackError }: AuthFormProps) {
         </form>
 
         {pendingEmail && displaySuccess && (
-          <form action={resendAction} className="mt-4">
+          <form onSubmit={handleResend} className="mt-4">
             <input type="hidden" name="email" value={pendingEmail} />
             <button
               type="submit"

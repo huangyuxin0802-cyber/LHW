@@ -1,0 +1,54 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "小幽灵",
+  "version": "0.1.5",
+  "identifier": "com.yuxin.desktop-pet",
+  "build": {
+    "frontendDist": "../out",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev:desktop",
+    "beforeBuildCommand": "node scripts/sync-app-version.mjs && npm run build"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": false,
+        "title": "小幽灵",
+        "width": 128,
+        "height": 128,
+        "transparent": true,
+        "decorations": false,
+        "shadow": false,
+        "alwaysOnTop": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZFRThCNEY0MDQzMjk2MApSV1JnS1VOQVQ0dnVCaFRGY2FtczRTMHdYcmxMdWd4TWVoVi94UExidU40cWhVM24yRVFZZElHUgo=",
+      "endpoints": [
+        "https://lhw-six.vercel.app/desktop-updates/latest.json"
+      ]
+    }
+  }
+}

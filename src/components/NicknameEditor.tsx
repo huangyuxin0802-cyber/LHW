@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import {
-  updateUsernameAction,
+  updateUsernameClient,
   type ProfileActionState,
-} from "@/app/actions/profile";
+} from "@/lib/profile-client";
 import { ui } from "@/lib/ui";
 
 const initialState: ProfileActionState = {};
@@ -23,10 +23,8 @@ export default function NicknameEditor({
 }: NicknameEditorProps) {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(initialUsername);
-  const [state, formAction, isPending] = useActionState(
-    updateUsernameAction,
-    initialState
-  );
+  const [state, setState] = useState<ProfileActionState>(initialState);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setDisplayName(initialUsername);
@@ -39,6 +37,18 @@ export default function NicknameEditor({
       onUpdated?.(state.username);
     }
   }, [state.success, state.username, onUpdated]);
+
+  const handleSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+
+      startTransition(async () => {
+        setState(await updateUsernameClient(formData));
+      });
+    },
+    []
+  );
 
   if (!editing) {
     return (
@@ -62,7 +72,10 @@ export default function NicknameEditor({
   }
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+    <form
+      onSubmit={handleSubmit}
+      className="flex w-full flex-col gap-2 sm:flex-row sm:items-center"
+    >
       <input
         name="username"
         type="text"

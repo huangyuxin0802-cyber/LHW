@@ -10,9 +10,12 @@ import {
 } from "@/lib/environment";
 import { getTrophyByName } from "@/lib/pet-trophies";
 import { useUsername } from "@/hooks/useUsername";
+import { startTauriWindowDrag, useIsTauri } from "@/lib/tauri-desktop";
 import { useCyberScavenging } from "@/hooks/useCyberScavenging";
+import { sanitizePetReply } from "@/lib/pet-chat-prompt";
+import { PetChatTransport } from "@/lib/pet-chat-transport";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import {
   AnimatePresence,
   motion,
@@ -86,31 +89,32 @@ type ActiveFood = {
 };
 
 function getMessageCopyText(parts: UIMessage["parts"]) {
-  return parts
-    .map((part) => {
-      if (part.type === "text") {
-        return part.text;
-      }
+  return sanitizePetReply(
+    parts
+      .map((part) => {
+        if (part.type === "text") {
+          return part.text;
+        }
 
-      if (
-        part.type === "tool-schedule_message" &&
-        part.state === "output-available"
-      ) {
-        const recipient =
-          typeof part.output === "object" &&
-          part.output !== null &&
-          "recipient" in part.output
-            ? String((part.output as { recipient: string }).recipient)
-            : (part.input as { recipient?: string })?.recipient;
+        if (
+          part.type === "tool-schedule_message" &&
+          part.state === "output-available"
+        ) {
+          const recipient =
+            typeof part.output === "object" &&
+            part.output !== null &&
+            "recipient" in part.output
+              ? String((part.output as { recipient: string }).recipient)
+              : (part.input as { recipient?: string })?.recipient;
 
-        return recipient ? `📨 已安排发送给 ${recipient}` : "";
-      }
+          return recipient ? `已安排发送给 ${recipient}` : "";
+        }
 
-      return "";
-    })
-    .filter(Boolean)
-    .join("\n")
-    .trim();
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n")
+  );
 }
 
 function isSystemTriggerMessage(message: UIMessage) {
@@ -128,7 +132,7 @@ function MessageParts({ parts }: { parts: UIMessage["parts"] }) {
         if (part.type === "text") {
           return (
             <span key={`text-${index}`} className="whitespace-pre-wrap">
-              {part.text}
+              {sanitizePetReply(part.text)}
             </span>
           );
         }
@@ -174,6 +178,71 @@ function randomIdleDelayMs() {
 function randomDropDelayMs(baseSeconds: number) {
   const jitter = 0.85 + Math.random() * 0.3;
   return Math.round(baseSeconds * 1000 * jitter);
+}
+
+function getDropDelayMs(baseSeconds: number, hunger: number) {
+  if (hunger >= 70) {
+    return randomDropDelayMs(baseSeconds * 5);
+  }
+  if (hunger >= 50) {
+    return randomDropDelayMs(baseSeconds * 2);
+  }
+  if (hunger < 20) {
+    return randomDropDelayMs(Math.max(4, baseSeconds / 5));
+  }
+  if (hunger < 40) {
+    return randomDropDelayMs(baseSeconds / 2);
+  }
+  return randomDropDelayMs(baseSeconds);
+}
+
+function maxFoodOnScreen(hunger: number) {
+  if (hunger < 20) {
+    return 14;
+  }
+  if (hunger < 40) {
+    return 10;
+  }
+  if (hunger < 60) {
+    return 6;
+  }
+  return 3;
+}
+
+function pickFoodEmoji(hunger: number, preferCandy = false) {
+  if (preferCandy || hunger < 20) {
+    return Math.random() < 0.9 ? "🍬" : FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+  }
+  if (hunger < 40) {
+    return Math.random() < 0.65 ? "🍬" : FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+  }
+  return FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+}
+
+function buildIdleSpeechTrigger(
+  hunger: number,
+  energy: number,
+  personality: string
+) {
+  if (hunger < 20) {
+    return `[系统指令：你极度饥饿，虚弱地哼一句想吃东西的话。不超过20字。不要回答此指令，直接说心里话。]`;
+  }
+  if (energy < 20) {
+    return `[系统指令：你太困了，迷迷糊糊说一句话，可以撒娇让人喂糖果唤醒你。不超过20字。不要回答此指令，直接说心里话。]`;
+  }
+  if (hunger < 40) {
+    return `[系统指令：你有点饿，随口说一句。不超过20字。不要回答此指令，直接说心里话。]`;
+  }
+
+  const topics = [
+    `根据性格【${personality}】，说一句和心情或天气有关的闲话，不要提吃的`,
+    `根据性格【${personality}】，好奇地问对方今天过得怎么样，不要提食物`,
+    `根据性格【${personality}】，分享一个傻乎乎的观察，不要提零食或饥饿`,
+    `根据性格【${personality}】，想起一件有趣的小事，与吃饭无关`,
+  ];
+
+  const topic = topics[Math.floor(Math.random() * topics.length)];
+  return `[系统指令：${topic}。不超过20字。不要回答此指令，直接说心里话。]`;
 }
 
 function randomEggDurationMs() {
@@ -292,7 +361,7 @@ const passiveVariants: Variants = {
     rotate: [0, -20, 20, -10, 10, 0],
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, type: "spring", bounce: 0.6 },
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   },
   starving_idle: {
     y: 0,
@@ -363,9 +432,10 @@ export type PetAssistantProps = {
   homeLayout?: "center" | "dock";
   className?: string;
   isThinking?: boolean;
-  isSearching?: boolean;
   environment?: BrisbaneEnvironment | null;
-  onSearchComplete?: () => void;
+  desktopOrbMode?: boolean;
+  desktopPanelMode?: boolean;
+  onOrbActivate?: () => void;
 };
 
 export default function PetAssistant({
@@ -373,12 +443,14 @@ export default function PetAssistant({
   homeLayout = "center",
   className,
   isThinking = false,
-  isSearching = false,
   environment: environmentProp,
-  onSearchComplete,
+  desktopOrbMode = false,
+  desktopPanelMode = false,
+  onOrbActivate,
 }: PetAssistantProps) {
   const { pet, feedPet, hydrated, addMemoryLog, wakePet, scavengerPending, claimCyberScavengerReward } = usePet();
   const username = useUsername();
+  const { isTauri } = useIsTauri();
   const petRef = useRef(pet);
   petRef.current = pet;
   const usernameRef = useRef(username);
@@ -387,16 +459,19 @@ export default function PetAssistant({
   const constraintsRef = useRef<HTMLDivElement>(null);
   const ghostButtonRef = useRef<HTMLButtonElement>(null);
   const dragMovedRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const tauriWindowDragStartedRef = useRef(false);
   const spontaneousPendingRef = useRef(false);
   const idleTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
   const firstFoodTimerRef = useRef<number | null>(null);
+  const prevHungerRef = useRef(pet.hunger);
+  const prevEnergyRef = useRef(pet.energy);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressFiredRef = useRef(false);
   const trickResetTimerRef = useRef<number | null>(null);
   const ghostAnimStateRef = useRef<GhostAnimState>("idle");
   const trickLockedRef = useRef(false);
-  const searchingInFlightRef = useRef(false);
   const rememberedToolCallsRef = useRef<Set<string>>(new Set());
   const foodLabelByIdRef = useRef<Map<string, string>>(new Map());
   const electricFlashTimerRef = useRef<number | null>(null);
@@ -480,29 +555,11 @@ export default function PetAssistant({
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport<UIMessage>({
-        api: "/api/chat",
-        body: () => ({
-          personality: petRef.current.personality,
-          hunger: petRef.current.hunger,
-          energy: petRef.current.energy,
-          level: petRef.current.loginDays,
-          login_days: petRef.current.loginDays,
-          last_food_eaten: petRef.current.lastFoodEaten,
-          mood_state: petRef.current.moodState,
-          memory_logs: petRef.current.memoryLogs,
-          ...(usernameRef.current
-            ? { user_name: usernameRef.current }
-            : {}),
-          environment: activeEnvironmentRef.current
-            ? {
-                ...environmentLabelsRef.current,
-                isSleepy: activeEnvironmentRef.current.isSleepy,
-                hour: activeEnvironmentRef.current.hour,
-              }
-            : undefined,
-        }),
-      }),
+      new PetChatTransport(() => ({
+        hunger: petRef.current.hunger,
+        energy: petRef.current.energy,
+        displayName: usernameRef.current ?? "Yuxin",
+      })),
     []
   );
 
@@ -599,6 +656,10 @@ export default function PetAssistant({
       setEatBubble(reaction);
       window.setTimeout(() => setEatBubble(null), 3000);
 
+      if (petRef.current.energy < 20) {
+        wakePet();
+      }
+
       setGhostAnimState("eating");
       feedPet(foodLabel, 15, 10);
       void innerControls.start("eating").then(() => {
@@ -607,7 +668,7 @@ export default function PetAssistant({
         }
       });
     },
-    [feedPet, innerControls, resumePassiveAnim]
+    [feedPet, innerControls, resumePassiveAnim, wakePet]
   );
 
   const runElectricEgg = useCallback(() => {
@@ -739,17 +800,23 @@ export default function PetAssistant({
     [forceWake]
   );
 
-  const spawnFood = useCallback(() => {
+  const spawnFood = useCallback((options?: { preferCandy?: boolean }) => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const emoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+    const hunger = petRef.current.hunger;
+    if (hunger >= 70) {
+      return;
+    }
+
+    const emoji = pickFoodEmoji(hunger, options?.preferCandy);
     const id = crypto.randomUUID();
     foodLabelByIdRef.current.set(id, FOOD_LABELS[emoji]);
+    const cap = maxFoodOnScreen(hunger);
 
     setActiveFoods((prev) => {
-      if (prev.length >= 8) {
+      if (prev.length >= cap) {
         return prev;
       }
 
@@ -766,15 +833,43 @@ export default function PetAssistant({
     });
   }, []);
 
+  const spawnFoodBurst = useCallback(
+    (count: number, preferCandy = true) => {
+      for (let index = 0; index < count; index += 1) {
+        window.setTimeout(() => {
+          spawnFood({ preferCandy });
+        }, index * 320);
+      }
+    },
+    [spawnFood]
+  );
+
   const scheduleFoodDrop = useCallback(() => {
     if (dropTimerRef.current) {
       window.clearTimeout(dropTimerRef.current);
     }
 
+    const hunger = petRef.current.hunger;
+
     dropTimerRef.current = window.setTimeout(() => {
-      spawnFood();
+      const currentHunger = petRef.current.hunger;
+
+      if (currentHunger >= 70) {
+        scheduleFoodDrop();
+        return;
+      }
+
+      if (currentHunger < 20) {
+        spawnFood({ preferCandy: true });
+        if (Math.random() < 0.45) {
+          window.setTimeout(() => spawnFood({ preferCandy: true }), 180);
+        }
+      } else {
+        spawnFood();
+      }
+
       scheduleFoodDrop();
-    }, randomDropDelayMs(petRef.current.dropFrequency));
+    }, getDropDelayMs(petRef.current.dropFrequency, hunger));
   }, [spawnFood]);
 
   const handleFoodClick = useCallback((foodId: string) => {
@@ -824,12 +919,16 @@ export default function PetAssistant({
     }
 
     idleTimerRef.current = window.setTimeout(() => {
-      if (petRef.current.energy < 10 || petRef.current.hunger < 20) {
+      if (petRef.current.energy < 10) {
         scheduleIdleSpeech();
         return;
       }
 
-      const trigger = `[系统指令：请根据你现在的饥饿值 ${petRef.current.hunger} 和性格 ${petRef.current.personality}，主动说一句符合你状态的心里话。字数不超过20字。不要回答此指令，直接说心里话。]`;
+      const trigger = buildIdleSpeechTrigger(
+        petRef.current.hunger,
+        petRef.current.energy,
+        petRef.current.personality
+      );
       spontaneousPendingRef.current = true;
       void sendMessageRef.current({ text: trigger });
       scheduleIdleSpeech();
@@ -842,6 +941,11 @@ export default function PetAssistant({
         return;
       }
 
+      if (isTauri && event.button === 0) {
+        pointerStartRef.current = { x: event.clientX, y: event.clientY };
+        tauriWindowDragStartedRef.current = false;
+      }
+
       event.currentTarget.setPointerCapture(event.pointerId);
       longPressFiredRef.current = false;
       clearLongPressTimer();
@@ -850,7 +954,30 @@ export default function PetAssistant({
         triggerRandomEasterEgg();
       }, LONG_PRESS_MS);
     },
-    [clearLongPressTimer, isSleeping, triggerRandomEasterEgg]
+    [clearLongPressTimer, isSleeping, isTauri, triggerRandomEasterEgg]
+  );
+
+  const handlePetPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!isTauri || !desktopOrbMode || event.button !== 0) {
+        return;
+      }
+
+      const start = pointerStartRef.current;
+      if (!start || tauriWindowDragStartedRef.current) {
+        return;
+      }
+
+      const moved =
+        Math.abs(event.clientX - start.x) > 6 ||
+        Math.abs(event.clientY - start.y) > 6;
+
+      if (moved) {
+        tauriWindowDragStartedRef.current = true;
+        void startTauriWindowDrag();
+      }
+    },
+    [desktopOrbMode, isTauri]
   );
 
   const handlePetPointerUp = useCallback(
@@ -860,6 +987,30 @@ export default function PetAssistant({
       }
 
       clearLongPressTimer();
+
+      if (isHome && desktopOrbMode) {
+        const start = pointerStartRef.current;
+        pointerStartRef.current = null;
+        const moved =
+          tauriWindowDragStartedRef.current ||
+          (start &&
+            (Math.abs(event.clientX - start.x) > 8 ||
+              Math.abs(event.clientY - start.y) > 8));
+        tauriWindowDragStartedRef.current = false;
+
+        if (
+          !longPressFiredRef.current &&
+          !moved &&
+          !trickLockedRef.current &&
+          onOrbActivate
+        ) {
+          onOrbActivate();
+        }
+        return;
+      }
+
+      pointerStartRef.current = null;
+      tauriWindowDragStartedRef.current = false;
 
       if (isHome) {
         return;
@@ -873,7 +1024,7 @@ export default function PetAssistant({
         setIsOpen((open) => !open);
       }
     },
-    [clearLongPressTimer, isHome]
+    [clearLongPressTimer, desktopOrbMode, isHome, onOrbActivate]
   );
 
   const handlePetPointerCancel = useCallback(
@@ -935,15 +1086,47 @@ export default function PetAssistant({
       return;
     }
 
+    if (desktopOrbMode) {
+      setActiveFoods([]);
+      return () => {
+        if (idleTimerRef.current) {
+          window.clearTimeout(idleTimerRef.current);
+        }
+        if (dropTimerRef.current) {
+          window.clearTimeout(dropTimerRef.current);
+        }
+        if (firstFoodTimerRef.current) {
+          window.clearTimeout(firstFoodTimerRef.current);
+        }
+      };
+    }
+
     if (!isHome) {
       scheduleIdleSpeech();
     }
 
+    const hunger = petRef.current.hunger;
     const firstDelay = Math.min(5000, petRef.current.dropFrequency * 1000);
-    firstFoodTimerRef.current = window.setTimeout(() => {
-      spawnFood();
+
+    if (hunger < 20) {
+      spawnFoodBurst(8, true);
+    } else if (hunger < 40) {
+      firstFoodTimerRef.current = window.setTimeout(() => {
+        spawnFood({ preferCandy: true });
+        scheduleFoodDrop();
+      }, Math.min(2500, firstDelay));
+    } else if (hunger < 70) {
+      firstFoodTimerRef.current = window.setTimeout(() => {
+        spawnFood();
+        scheduleFoodDrop();
+      }, firstDelay);
+    } else {
       scheduleFoodDrop();
-    }, firstDelay);
+    }
+
+    if (petRef.current.energy < 20) {
+      spawnFoodBurst(6, true);
+    }
 
     return () => {
       if (idleTimerRef.current) {
@@ -963,12 +1146,36 @@ export default function PetAssistant({
   }, [
     mounted,
     hydrated,
+    desktopOrbMode,
     isHome,
     scheduleFoodDrop,
     scheduleIdleSpeech,
     spawnFood,
+    spawnFoodBurst,
     clearElectricFlash,
   ]);
+
+  useEffect(() => {
+    if (desktopOrbMode) {
+      return;
+    }
+    const prevHunger = prevHungerRef.current;
+    prevHungerRef.current = pet.hunger;
+    if (pet.hunger < 20 && prevHunger >= 20) {
+      spawnFoodBurst(8, true);
+    }
+  }, [desktopOrbMode, pet.hunger, spawnFoodBurst]);
+
+  useEffect(() => {
+    if (desktopOrbMode) {
+      return;
+    }
+    const prevEnergy = prevEnergyRef.current;
+    prevEnergyRef.current = pet.energy;
+    if (pet.energy < 20 && prevEnergy >= 20) {
+      spawnFoodBurst(6, true);
+    }
+  }, [desktopOrbMode, pet.energy, spawnFoodBurst]);
 
   useEffect(() => {
     if (!spontaneousPendingRef.current || isLoading) {
@@ -1029,54 +1236,7 @@ export default function PetAssistant({
   }, [addMemoryLog, messages]);
 
   useEffect(() => {
-    if (!isSearching) {
-      searchingInFlightRef.current = false;
-      return;
-    }
-    if (searchingInFlightRef.current || trickLockedRef.current) {
-      return;
-    }
-
-    searchingInFlightRef.current = true;
-    let cancelled = false;
-
-    const runSearch = async () => {
-      setGhostAnimState("idle");
-      resetInnerTransform();
-      await innerControls.start({
-        x: 1000,
-        transition: { duration: 0.65, ease: "easeIn" },
-      });
-      if (cancelled) return;
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      if (cancelled) return;
-      await innerControls.start({
-        x: 0,
-        transition: { duration: 0.65, ease: "easeOut" },
-      });
-      if (cancelled) return;
-      onSearchComplete?.();
-      if (!isThinking) {
-        resumePassiveAnim();
-      }
-    };
-
-    void runSearch();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    innerControls,
-    isSearching,
-    isThinking,
-    onSearchComplete,
-    resetInnerTransform,
-    resumePassiveAnim,
-  ]);
-
-  useEffect(() => {
-    if (!isThinking || isSearching || trickLockedRef.current) {
+    if (!isThinking || trickLockedRef.current) {
       return;
     }
 
@@ -1086,10 +1246,10 @@ export default function PetAssistant({
       rotate: [0, -6, 6, -5, 5, 0],
       transition: { duration: 0.9, repeat: Infinity, ease: "easeInOut" },
     });
-  }, [innerControls, isSearching, isThinking]);
+  }, [innerControls, isThinking]);
 
   useEffect(() => {
-    if (isSearching || isThinking) {
+    if (isThinking) {
       return;
     }
     if (
@@ -1108,7 +1268,6 @@ export default function PetAssistant({
   }, [
     pet.hunger,
     pet.energy,
-    isSearching,
     isSleepyByEnvironment,
     isThinking,
     innerControls,
@@ -1118,7 +1277,7 @@ export default function PetAssistant({
     if (!mounted || !hydrated) return;
     if (dropTimerRef.current) window.clearTimeout(dropTimerRef.current);
     scheduleFoodDrop();
-  }, [pet.dropFrequency, mounted, hydrated, scheduleFoodDrop]);
+  }, [pet.dropFrequency, pet.hunger, mounted, hydrated, scheduleFoodDrop]);
 
   const errorMessage = useMemo(() => {
     if (!error) {
@@ -1126,8 +1285,8 @@ export default function PetAssistant({
     }
 
     const text = error.message;
-    if (text.includes("GROQ_API_KEY")) {
-      return "Groq API Key 未配置。请在 Vercel 环境变量添加 GROQ_API_KEY。";
+    if (text.includes("NEXT_PUBLIC_GROQ_API_KEY")) {
+      return "Groq API Key 未配置。请在 .env.local 添加 NEXT_PUBLIC_GROQ_API_KEY。";
     }
     if (/rate limit|429|quota/i.test(text)) {
       return text.includes("Groq") ? text : "Groq API 请求过快，请稍后再试。";
@@ -1143,7 +1302,7 @@ export default function PetAssistant({
     scavengerBubble ?? eatBubble ?? trickBubble ?? thinkingBubble ?? idleBubble;
   const isScavengerBubble = Boolean(scavengerBubble);
 
-  if (!mounted) {
+  if (!mounted && !desktopOrbMode) {
     return null;
   }
 
@@ -1166,6 +1325,7 @@ export default function PetAssistant({
       ref={ghostButtonRef}
       type="button"
       onPointerDown={handlePetPointerDown}
+      onPointerMove={handlePetPointerMove}
       onPointerUp={handlePetPointerUp}
       onPointerCancel={handlePetPointerCancel}
       onDoubleClick={handlePetDoubleClick}
@@ -1200,8 +1360,20 @@ export default function PetAssistant({
       {isStriking && (
         <span className="absolute inset-0 animate-pulse rounded-full bg-red-500/25" />
       )}
+      {isStriking && !isHome && (
+        <span className="pointer-events-none absolute -bottom-7 left-1/2 w-max -translate-x-1/2 rounded-full bg-red-600/90 px-2 py-0.5 text-[10px] font-medium text-white shadow-lg">
+          快喂屏幕上的糖果！
+        </span>
+      )}
       {isSleeping ? (
-        <span className="relative text-lg font-semibold">Zzz</span>
+        <>
+          <span className="relative text-lg font-semibold">Zzz</span>
+          {!isHome && (
+            <span className="pointer-events-none absolute -bottom-7 left-1/2 w-max -translate-x-1/2 rounded-full bg-zinc-900/85 px-2 py-0.5 text-[10px] font-medium text-zinc-200 shadow-lg">
+              点 🍬 糖果唤醒
+            </span>
+          )}
+        </>
       ) : pet.avatar === "puppy" ? (
         <Dog
           className={`relative ${iconSize} ${
@@ -1226,11 +1398,6 @@ export default function PetAssistant({
       )}
       {rainOverlayEmoji && (
         <span className="absolute -left-1 -top-2 text-base">{rainOverlayEmoji}</span>
-      )}
-      {isSearching && (
-        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-base">
-          🕵️‍♂️
-        </span>
       )}
       {equippedEmoji && (
         <span className="absolute -right-1 -bottom-2 text-base">
@@ -1272,6 +1439,29 @@ export default function PetAssistant({
     ghostAnimState
   );
 
+  const enableFramerPetDrag = desktopPanelMode
+    ? !isSleeping
+    : !isTauri &&
+      !desktopOrbMode &&
+      isPassiveAnimState(ghostAnimState) &&
+      !isSleeping &&
+      !trickLocked &&
+      !scavengerActive;
+
+  const panelDragTransition = {
+    power: 0.45,
+    timeConstant: 195,
+    bounceStiffness: 300,
+    bounceDamping: 15,
+  };
+
+  const defaultDragTransition = {
+    power: 0.28,
+    timeConstant: 220,
+    bounceStiffness: 360,
+    bounceDamping: 18,
+  };
+
   const animatedPet = (
     <motion.div
       animate={petAnimate}
@@ -1285,8 +1475,12 @@ export default function PetAssistant({
       whileTap={
         !trickLocked && !isSleeping ? { scale: 0.9, rotate: -4 } : undefined
       }
-      transition={{ type: "spring", stiffness: 420, damping: 18 }}
-      className="relative"
+      transition={
+        typeof petAnimate === "string"
+          ? { type: "tween" }
+          : { type: "spring", stiffness: 420, damping: 18 }
+      }
+      className={`relative ${isTauri ? "cursor-grab active:cursor-grabbing" : ""}`}
     >
       {petButton}
     </motion.div>
@@ -1332,45 +1526,68 @@ export default function PetAssistant({
   ));
 
   if (isHome) {
-    const petSizeHome = homeLayout === "dock" ? "h-16 w-16" : "h-28 w-28";
-    const iconSizeHome = homeLayout === "dock" ? "h-8 w-8" : "h-12 w-12";
+    const petSizeHome = desktopOrbMode
+      ? "h-28 w-28"
+      : desktopPanelMode
+        ? "h-16 w-16"
+        : homeLayout === "dock"
+          ? "h-16 w-16"
+          : "h-28 w-28";
+    const iconSizeHome = desktopOrbMode
+      ? "h-[4.5rem] w-[4.5rem]"
+      : desktopPanelMode
+        ? "h-7 w-7"
+        : homeLayout === "dock"
+          ? "h-8 w-8"
+          : "h-12 w-12";
+    const orbGhostClass =
+      pet.avatar === "puppy"
+        ? "fill-amber-200 text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.85)]"
+        : "fill-violet-100 text-violet-400 drop-shadow-[0_0_20px_rgba(167,139,250,0.9)]";
 
     return (
       <>
-        {createPortal(
-          <>
-            {foodLayer}
-            <ScavengerCouponDrop flight={couponFlight} />
-          </>,
-          document.body
-        )}
+        {!desktopOrbMode &&
+          createPortal(
+            <>
+              {foodLayer}
+              <ScavengerCouponDrop flight={couponFlight} />
+            </>,
+            document.body
+          )}
         <div
           ref={homeDragConstraintsRef}
           className={
-            homeLayout === "dock"
-              ? "pointer-events-none fixed inset-0 z-[25]"
-              : `relative mx-auto ${className ?? ""}`
+            desktopOrbMode
+              ? `pointer-events-none relative mx-auto ${className ?? ""}`
+              : desktopPanelMode
+                ? `pointer-events-none absolute inset-0 z-[25] flex items-center justify-center ${className ?? ""}`
+                : homeLayout === "center"
+                  ? `relative flex h-full w-full items-center justify-center ${className ?? ""}`
+                  : homeLayout === "dock"
+                    ? "pointer-events-none fixed inset-0 z-[25]"
+                    : `relative mx-auto ${className ?? ""}`
           }
         >
           <motion.div
-            drag={
-              isPassiveAnimState(ghostAnimState) &&
-              !isSleeping &&
-              !trickLocked &&
-              !scavengerActive
+            drag={enableFramerPetDrag}
+            dragMomentum
+            dragTransition={
+              desktopPanelMode ? panelDragTransition : defaultDragTransition
             }
-            dragMomentum={true}
-            dragTransition={{
-              power: 0.28,
-              timeConstant: 220,
-              bounceStiffness: 360,
-              bounceDamping: 18,
-            }}
-            dragElastic={0.12}
+            dragElastic={desktopPanelMode ? 0.28 : 0.12}
             dragConstraints={
-              homeLayout === "dock" ? homeDragConstraintsRef : undefined
+              homeLayout === "dock" || desktopPanelMode
+                ? homeDragConstraintsRef
+                : undefined
             }
-            whileDrag={{ scale: 1.12, rotate: 8, cursor: "grabbing" }}
+            whileDrag={
+              desktopOrbMode || !enableFramerPetDrag
+                ? undefined
+                : desktopPanelMode
+                  ? { scale: 1.08, rotate: 6, zIndex: 60, cursor: "grabbing" }
+                  : { scale: 1.12, rotate: 8, cursor: "grabbing" }
+            }
             animate={homeDragControls}
             onDragStart={() => {
               dragMovedRef.current = true;
@@ -1380,7 +1597,7 @@ export default function PetAssistant({
               window.setTimeout(() => {
                 dragMovedRef.current = false;
               }, 80);
-              if (homeLayout === "dock") {
+              if (homeLayout === "dock" && !desktopPanelMode) {
                 void homeDragControls.start({
                   x: 0,
                   y: 0,
@@ -1392,73 +1609,104 @@ export default function PetAssistant({
                 });
               }
             }}
-            className={`relative ${homeLayout === "dock" ? "pointer-events-auto shrink-0" : className ?? ""}`}
+            className={`relative ${desktopPanelMode ? "pointer-events-auto tauri-no-drag cursor-grab active:cursor-grabbing" : homeLayout === "dock" ? "pointer-events-auto shrink-0" : className ?? ""} ${isTauri && !desktopOrbMode && !desktopPanelMode ? "cursor-grab active:cursor-grabbing" : ""}`}
           >
-            <div className="relative z-50">{bubbleNode}</div>
+            {!desktopOrbMode && (
+              <div className="relative z-50">{bubbleNode}</div>
+            )}
             <motion.div
               animate={petAnimate}
               variants={passiveVariants}
               initial="idle"
               whileHover={
-                !trickLocked && isPassiveAnimState(ghostAnimState) && !isSleeping
-                  ? { scale: 1.05, y: -2 }
-                  : undefined
+                desktopOrbMode || trickLocked || !isPassiveAnimState(ghostAnimState) || isSleeping
+                  ? undefined
+                  : { scale: 1.05, y: -2 }
               }
               whileTap={
-                !trickLocked && !isSleeping
-                  ? { scale: 0.92, rotate: -3 }
-                  : undefined
+                desktopOrbMode || trickLocked || isSleeping
+                  ? undefined
+                  : { scale: 0.92, rotate: -3 }
               }
-              transition={{ type: "spring", stiffness: 420, damping: 18 }}
+              transition={
+                typeof petAnimate === "string"
+                  ? { type: "tween" }
+                  : { type: "spring", stiffness: 420, damping: 18 }
+              }
               className="relative"
             >
               <button
                 ref={ghostButtonRef}
                 type="button"
-                onPointerDown={handlePetPointerDown}
-                onPointerUp={handlePetPointerUp}
-                onPointerCancel={handlePetPointerCancel}
-                onDoubleClick={handlePetDoubleClick}
-                className={`relative flex ${petSizeHome} touch-none items-center justify-center rounded-full border-2 text-white shadow-xl ring-4 transition hover:scale-105 active:scale-95 ${
-                  isSleeping
-                    ? "border-zinc-400/40 bg-zinc-600 shadow-zinc-900/40 ring-zinc-500/20"
-                    : isStriking
-                      ? "border-red-400/50 bg-zinc-700 shadow-red-950/50 ring-red-500/20"
-                      : trickActive
-                        ? eggButtonClass ||
-                          "border-fuchsia-300/50 bg-fuchsia-600 shadow-fuchsia-900/40 ring-fuchsia-500/25"
-                        : `${theme.border} ${theme.bg} ${theme.shadow} ${theme.ring}`
-                }`}
+                tabIndex={desktopOrbMode ? -1 : 0}
+                onPointerDown={desktopOrbMode ? undefined : handlePetPointerDown}
+                onPointerMove={desktopOrbMode ? undefined : handlePetPointerMove}
+                onPointerUp={desktopOrbMode ? undefined : handlePetPointerUp}
+                onPointerCancel={desktopOrbMode ? undefined : handlePetPointerCancel}
+                onDoubleClick={desktopOrbMode ? undefined : handlePetDoubleClick}
+                className={
+                  desktopOrbMode
+                    ? `relative flex ${petSizeHome} items-center justify-center bg-transparent shadow-none ring-0`
+                    : `${isTauri && desktopOrbMode ? "tauri-no-drag " : ""}relative flex ${petSizeHome} touch-none items-center justify-center rounded-full border-2 text-white transition hover:scale-105 active:scale-95 ${
+                        desktopPanelMode
+                          ? "shadow-lg ring-2"
+                          : "shadow-xl ring-4"
+                      } ${
+                        isSleeping
+                          ? "border-zinc-400/40 bg-zinc-600 shadow-zinc-900/40 ring-zinc-500/20"
+                          : isStriking
+                            ? "border-red-400/50 bg-zinc-700 shadow-red-950/50 ring-red-500/20"
+                            : trickActive
+                              ? eggButtonClass ||
+                                "border-fuchsia-300/50 bg-fuchsia-600 shadow-fuchsia-900/40 ring-fuchsia-500/25"
+                              : `${theme.border} ${theme.bg} ${theme.shadow} ${theme.ring}`
+                      }`
+                }
                 aria-label="电子宠物"
+                aria-hidden={desktopOrbMode}
               >
-                {!isSleeping &&
+                {!desktopOrbMode &&
+                  !isSleeping &&
                   isPassiveAnimState(ghostAnimState) &&
                   !isStriking && (
                     <span
                       className={`absolute inset-0 animate-ping rounded-full ${theme.ping}`}
                     />
                   )}
-                {isSearching && (
-                  <span className="absolute -top-3 text-xl">🕵️‍♂️</span>
-                )}
-                {rainOverlayEmoji && !isSearching && (
+                {!desktopOrbMode && rainOverlayEmoji && (
                   <span className="absolute -top-2 text-lg">{rainOverlayEmoji}</span>
                 )}
-                {equippedEmoji && !isSearching && !rainOverlayEmoji && (
+                {!desktopOrbMode && equippedEmoji && !rainOverlayEmoji && (
                   <span className="absolute -top-2 text-lg">{equippedEmoji}</span>
                 )}
                 {isSleeping ? (
-                  <span className="relative text-lg font-semibold">Zzz</span>
+                  <span
+                    className={`relative font-semibold ${desktopOrbMode ? "text-base text-violet-200/90" : "text-lg"}`}
+                  >
+                    Zzz
+                  </span>
                 ) : pet.avatar === "puppy" ? (
-                  <Dog className={`relative ${iconSizeHome}`} />
+                  <Dog
+                    className={`relative ${iconSizeHome} ${desktopOrbMode ? orbGhostClass : ""}`}
+                    strokeWidth={desktopOrbMode ? 1.5 : 2}
+                  />
                 ) : (
-                  <Ghost className={`relative ${iconSizeHome}`} />
+                  <Ghost
+                    className={`relative ${iconSizeHome} ${desktopOrbMode ? orbGhostClass : ""}`}
+                    strokeWidth={desktopOrbMode ? 1.5 : 2}
+                  />
                 )}
-                <span
-                  className={`absolute -left-1 -bottom-1 rounded-full bg-zinc-950/90 px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-white/15 ${theme.badge}`}
-                >
-                  Lv.{pet.loginDays}
-                </span>
+                {!desktopOrbMode && (
+                  <span
+                    className={`absolute -left-1 -bottom-1 rounded-full bg-zinc-950/90 font-bold ring-1 ring-white/15 ${theme.badge} ${
+                      desktopPanelMode
+                        ? "px-1 py-px text-[8px]"
+                        : "px-1.5 py-0.5 text-[9px]"
+                    }`}
+                  >
+                    Lv.{pet.loginDays}
+                  </span>
+                )}
               </button>
             </motion.div>
           </motion.div>
@@ -1477,12 +1725,7 @@ export default function PetAssistant({
         aria-live="polite"
       >
         <motion.div
-          drag={
-            isPassiveAnimState(ghostAnimState) &&
-            !isSleeping &&
-            !trickLocked &&
-            !scavengerActive
-          }
+          drag={enableFramerPetDrag}
           dragMomentum={true}
           dragTransition={{
             power: 0.28,
@@ -1494,7 +1737,7 @@ export default function PetAssistant({
           dragConstraints={constraintsRef}
           whileDrag={{ scale: 1.12, rotate: 8, cursor: "grabbing" }}
           animate={scavengerOuterControls}
-          className="pointer-events-auto absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
+          className={`pointer-events-auto absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] ${isTauri ? "cursor-grab active:cursor-grabbing" : ""}`}
           onDragStart={() => {
             dragMovedRef.current = true;
             clearLongPressTimer();
@@ -1576,7 +1819,9 @@ export default function PetAssistant({
                         }`}
                       >
                         {message.role === "assistant" ? (
-                          <AssistantMessageBubble parts={message.parts} />
+                          <AssistantMessageBubble
+                            text={getMessageCopyText(message.parts)}
+                          />
                         ) : (
                           <MessageParts parts={message.parts} />
                         )}

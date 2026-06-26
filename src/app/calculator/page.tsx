@@ -2,7 +2,7 @@ import Calculator from "@/components/Calculator";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ui } from "@/lib/ui";
 
-export default async function CalculatorPage() {
+export default function CalculatorPage() {
   return (
     <DashboardLayout
       activeItem="calculator"

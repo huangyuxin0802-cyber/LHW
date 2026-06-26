@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import {
-  addFriendByEmailAction,
-  acceptFriendFormAction,
-  rejectFriendFormAction,
-  removeFriendFormAction,
-} from "@/app/actions/friends";
+  addFriendByEmailClient,
+  loadFriendsPageData,
+  removeFriendClient,
+  respondFriendRequestClient,
+} from "@/lib/friends-client";
 import { ui } from "@/lib/ui";
-
-const initialState = {};
 
 function formatTime(iso) {
   return new Date(iso).toLocaleString("zh-CN", {
@@ -25,17 +23,44 @@ function displayLabel(profile, userId) {
   return profile?.username ?? `用户 ${userId.slice(0, 8)}`;
 }
 
-/**
- * @param {{
- *   friends: Array<{ friendshipId: string; userId: string; profile: { username?: string } | null }>;
- *   incoming: Array<{ id: string; requesterId: string; profile: { username?: string } | null; created_at: string }>;
- *   outgoing: Array<{ id: string; addresseeId: string; profile: { username?: string } | null; created_at: string }>;
- * }} props
- */
-export default function FriendsPanel({ friends, incoming, outgoing }) {
-  const [state, formAction, isPending] = useActionState(
-    addFriendByEmailAction,
-    initialState
+export default function FriendsPanel({ friends, incoming, outgoing, onRefresh }) {
+  const [state, setState] = useState({});
+  const [isPending, startTransition] = useTransition();
+
+  const handleAddFriend = useCallback(
+    (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+
+      startTransition(async () => {
+        const result = await addFriendByEmailClient(formData);
+        setState(result);
+        if (!result.error) {
+          onRefresh?.();
+        }
+      });
+    },
+    [onRefresh]
+  );
+
+  const handleRespond = useCallback(
+    (friendshipId, accept) => {
+      startTransition(async () => {
+        await respondFriendRequestClient(friendshipId, accept);
+        onRefresh?.();
+      });
+    },
+    [onRefresh]
+  );
+
+  const handleRemove = useCallback(
+    (friendshipId) => {
+      startTransition(async () => {
+        await removeFriendClient(friendshipId);
+        onRefresh?.();
+      });
+    },
+    [onRefresh]
   );
 
   return (
@@ -44,7 +69,7 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
         <h2 className={ui.title}>添加好友</h2>
         <p className={ui.subtitle}>输入对方注册时使用的邮箱</p>
 
-        <form action={formAction} className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <form onSubmit={handleAddFriend} className="mt-6 flex flex-col gap-3 sm:flex-row">
           <input
             name="email"
             type="email"
@@ -80,18 +105,20 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
                   <p className={ui.label}>{formatTime(req.created_at)}</p>
                 </div>
                 <div className="flex gap-2">
-                  <form action={acceptFriendFormAction}>
-                    <input type="hidden" name="friendshipId" value={req.id} />
-                    <button type="submit" className={ui.btnPrimarySm}>
-                      接受
-                    </button>
-                  </form>
-                  <form action={rejectFriendFormAction}>
-                    <input type="hidden" name="friendshipId" value={req.id} />
-                    <button type="submit" className={ui.btnGhost}>
-                      拒绝
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => handleRespond(req.id, true)}
+                    className={ui.btnPrimarySm}
+                  >
+                    接受
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRespond(req.id, false)}
+                    className={ui.btnGhost}
+                  >
+                    拒绝
+                  </button>
                 </div>
               </li>
             ))}
@@ -120,16 +147,13 @@ export default function FriendsPanel({ friends, incoming, outgoing }) {
                   >
                     聊天
                   </Link>
-                  <form action={removeFriendFormAction}>
-                    <input
-                      type="hidden"
-                      name="friendshipId"
-                      value={friend.friendshipId}
-                    />
-                    <button type="submit" className={ui.btnDanger}>
-                      删除
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(friend.friendshipId)}
+                    className={ui.btnDanger}
+                  >
+                    删除
+                  </button>
                 </div>
               </li>
             ))}

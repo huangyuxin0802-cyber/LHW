@@ -2,7 +2,9 @@ import { ui } from "@/lib/ui";
 
 export default function Main({ title, description, children }) {
   return (
-    <main className={`relative flex min-h-full flex-1 flex-col overflow-y-auto ${ui.main}`}>
+    <main
+      className={`relative flex min-h-full flex-1 flex-col overflow-y-auto text-zinc-950 dark:text-zinc-100 ${ui.main}`}
+    >
       <div aria-hidden className={`absolute ${ui.pageGlowRight}`} />
 
       {(title || description) && (

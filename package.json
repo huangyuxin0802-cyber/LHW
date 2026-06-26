@@ -1,13 +1,21 @@
 {
   "name": "lhw-web",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:desktop": "next dev --port 1420",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:profile": "tsx scripts/seed-profile.ts"
+    "seed:profile": "tsx scripts/seed-profile.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:only": "tauri build --bundles app",
+    "tauri:export": "node scripts/export-desktop-app.mjs",
+    "tauri:icon": "node scripts/generate-app-icon.mjs",
+    "prebuild": "node scripts/sync-app-version.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.83",
@@ -16,20 +24,22 @@
     "@ai-sdk/react": "^3.0.211",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "ai": "^6.0.209",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.41.0",
     "lucide-react": "^1.21.0",
-    "maplibre-gl": "^5.24.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-map-gl": "^8.1.1",
     "recharts": "^3.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.8.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",

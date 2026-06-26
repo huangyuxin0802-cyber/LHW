@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-set-desktop-window-shape"
+description = "Allows shaping the desktop pet window on macOS."
+commands.allow = ["set_desktop_window_shape"]

@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { sendMessageAction } from "@/app/actions/messages";
+import { sendMessageClient } from "@/lib/messages-client";
 import NicknameEditor from "@/components/NicknameEditor";
 import { ui } from "@/lib/ui";
 
@@ -35,10 +35,8 @@ export default function ChatRoom({
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [myName, setMyName] = useState(currentUsername);
-  const [state, formAction, isPending] = useActionState(
-    sendMessageAction,
-    initialState
-  );
+  const [state, setState] = useState({});
+  const [isPending, startTransition] = useTransition();
   const bottomRef = useRef(null);
   const messageFormRef = useRef(null);
   const supabaseRef = useRef(null);
@@ -152,7 +150,18 @@ export default function ChatRoom({
 
       <form
         ref={messageFormRef}
-        action={formAction}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+
+          startTransition(async () => {
+            const result = await sendMessageClient(formData);
+            setState(result);
+            if (!result.error) {
+              event.currentTarget.reset();
+            }
+          });
+        }}
         className={`flex gap-3 border-t px-6 py-4 ${ui.divider}`}
       >
         <input type="hidden" name="recipientId" value={friendId} />

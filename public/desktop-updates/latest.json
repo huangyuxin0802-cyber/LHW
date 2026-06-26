@@ -1,0 +1,11 @@
+{
+  "version": "0.1.5",
+  "notes": "小幽灵 v0.1.5",
+  "pub_date": "2026-06-26T10:51:00.000Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZ0tVTkFUNHZ1QnFlSTRpSW5uM3RmeEw0ZUxnaG50UEF0VTBTZGE0VUU1YzNNcTdOMkNpWHhKN3BmeC95dVFhOENqN1IwRjNLR0Z1d1I5ZC9pTkY1SXA0T2hVYklZSHdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDcxMDY2CWZpbGU65bCP5bm954G1LmFwcC50YXIuZ3oKb1lWd2RhNU9mYmhwTDBrTVdidCtDbzlaeVNsbFQ0MTdMSmxtaVJEdGJCTDFMcmxDZkJpeXVXak1QRzJaL1U2ODVmV3VKakNOaEhYbCsvbXN4QUdDQ1E9PQo=",
+      "url": "https://lhw-six.vercel.app/desktop-updates/desktop-pet.app.tar.gz"
+    }
+  }
+}

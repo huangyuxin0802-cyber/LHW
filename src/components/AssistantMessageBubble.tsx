@@ -1,27 +1,17 @@
 "use client";
 
-import type { UIMessage } from "ai";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useState } from "react";
 
-function getMessageText(parts: UIMessage["parts"]) {
-  return parts
-    .filter((part) => part.type === "text")
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("")
-    .trim();
-}
-
 type AssistantMessageBubbleProps = {
-  parts: UIMessage["parts"];
+  text: string;
   className?: string;
 };
 
 export default function AssistantMessageBubble({
-  parts,
+  text,
   className = "",
 }: AssistantMessageBubbleProps) {
-  const text = getMessageText(parts);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {

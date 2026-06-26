@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import ExpenseApp from "@/components/expenses/ExpenseApp";
 
-export default async function ExpensesPage() {
+export default function ExpensesPage() {
   return (
     <DashboardLayout
       activeItem="expenses"

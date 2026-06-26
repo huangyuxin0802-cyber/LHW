@@ -54,10 +54,10 @@ export default function LandingHero({ isAuthenticated }: LandingHeroProps) {
             />
           </Link>
           <Link
-            href="/map"
+            href="/"
             className={`inline-flex items-center px-6 py-3 text-[14px] font-medium ${ui.btnSecondary}`}
           >
-            Brisbane Discount Map
+            Meet your desktop pet
           </Link>
         </div>
       </motion.div>

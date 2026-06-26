@@ -18,11 +18,19 @@ export const ui = {
   main: "bg-zinc-50 dark:bg-zinc-950",
   mainHeader:
     "border-black/[0.06] bg-zinc-50/80 dark:border-white/[0.06] dark:bg-zinc-950/80",
-  mainTitle: "text-zinc-900 dark:text-white",
-  mainDesc: "text-zinc-500 dark:text-zinc-400",
+  mainTitle: "text-zinc-950 dark:text-white",
+  mainDesc: "text-zinc-700 dark:text-zinc-400",
   card: "relative overflow-hidden rounded-3xl border border-black/[0.06] bg-white p-8 shadow-[0_2px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none sm:p-10",
   cardSm:
-    "rounded-2xl border border-black/[0.06] bg-zinc-50 p-5 backdrop-blur-sm dark:border-white/[0.06] dark:bg-white/[0.02]",
+    "rounded-2xl border border-black/[0.06] bg-zinc-50/90 p-5 backdrop-blur-sm dark:border-white/[0.06] dark:bg-white/[0.02]",
+  cardAccent:
+    "rounded-2xl border border-violet-200/70 bg-gradient-to-br from-violet-50/90 via-white to-zinc-50/80 p-5 shadow-sm dark:border-violet-500/20 dark:from-violet-950/40 dark:via-white/[0.02] dark:to-transparent dark:shadow-none",
+  quickLink:
+    "group flex flex-col rounded-2xl border border-black/[0.06] bg-white px-5 py-4 shadow-sm transition hover:border-violet-200 hover:shadow-md dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-violet-500/30",
+  quickLinkTitle:
+    "text-[15px] font-semibold text-zinc-950 transition group-hover:text-violet-800 dark:text-zinc-100 dark:group-hover:text-violet-200",
+  quickLinkDesc:
+    "mt-1 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-400",
   cardInner:
     "rounded-2xl border border-black/[0.06] bg-zinc-50 p-4 dark:border-white/[0.06] dark:bg-zinc-950/40",
   listItem:
@@ -32,13 +40,17 @@ export const ui = {
   avatar:
     "flex items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-100 text-zinc-900 ring-1 ring-black/[0.06] dark:from-white/20 dark:to-white/5 dark:text-white dark:ring-white/20",
   eyebrow:
-    "text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500",
-  title: "text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-white",
+    "text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-500",
+  title: "text-[24px] font-semibold tracking-tight text-zinc-950 dark:text-white",
   titleLg:
-    "text-[32px] font-extralight tracking-tight text-zinc-900 dark:text-white sm:text-[40px]",
-  titleAccent: "font-semibold text-zinc-800 dark:text-zinc-100",
-  subtitle: "mt-1 text-[15px] text-zinc-500 dark:text-zinc-400",
-  label: "text-[13px] font-medium text-zinc-500",
+    "text-[32px] font-extralight tracking-tight text-zinc-950 dark:text-white sm:text-[40px]",
+  titleAccent: "font-semibold text-zinc-950 dark:text-zinc-100",
+  subtitle: "mt-1 text-[15px] text-zinc-800 dark:text-zinc-400",
+  label: "text-[13px] font-medium text-zinc-700 dark:text-zinc-400",
+  statValue:
+    "text-[21px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-100",
+  statValueSm:
+    "text-[17px] font-medium text-zinc-950 dark:text-zinc-100",
   body: "text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300",
   textPrimary: "text-zinc-900 dark:text-zinc-100",
   input:

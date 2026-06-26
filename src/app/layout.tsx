@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import GlobalFloatingPet from "@/components/GlobalFloatingPet";
+import TauriDesktopInit from "@/components/TauriDesktopInit";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import { PetProvider } from "@/components/PetProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
@@ -12,21 +14,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "LHW",
-  description: "简洁、安全的账号系统",
+  title: "Desktop Pet",
+  description: "栖息在你桌面上的电子宠物陪伴",
 };
-
-const themeScript = `
-(function () {
-  try {
-    var theme = localStorage.getItem("theme");
-    if (theme === "light") document.documentElement.classList.remove("dark");
-    else document.documentElement.classList.add("dark");
-  } catch (e) {
-    document.documentElement.classList.add("dark");
-  }
-})();
-`;
 
 export default function RootLayout({
   children,
@@ -39,15 +29,15 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased dark`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
-          <PetProvider>
-            {children}
-            <GlobalFloatingPet />
-          </PetProvider>
+          <LocaleProvider>
+            <PetProvider>
+              <TauriDesktopInit />
+              {children}
+              <GlobalFloatingPet />
+            </PetProvider>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>
