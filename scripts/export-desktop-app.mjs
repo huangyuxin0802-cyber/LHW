@@ -3,6 +3,7 @@ import { execSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -93,6 +94,30 @@ function clearQuarantine(targetPath) {
   } catch {
     console.warn(`[export] Could not clear quarantine on ${targetPath}`);
   }
+}
+
+function createDistributionZip(sourceApp, zipPath) {
+  const stageDir = join(root, ".export-stage-mac");
+  const stagedApp = join(stageDir, `${appName}.app`);
+  const guidePath = join(stageDir, "安装说明.txt");
+
+  if (existsSync(stageDir)) {
+    rmSync(stageDir, { recursive: true, force: true });
+  }
+  mkdirSync(stageDir, { recursive: true });
+
+  run(`ditto ${JSON.stringify(sourceApp)} ${JSON.stringify(stagedApp)}`);
+  copyFileSync(join(root, "scripts/mac-install-guide.txt"), guidePath);
+  clearQuarantine(stagedApp);
+
+  if (existsSync(zipPath)) {
+    rmSync(zipPath, { force: true });
+  }
+
+  run(
+    `ditto -c -k --sequesterRsrc ${JSON.stringify(stageDir)} ${JSON.stringify(zipPath)}`
+  );
+  rmSync(stageDir, { recursive: true, force: true });
 }
 
 function findUpdaterArtifacts() {
@@ -193,14 +218,10 @@ if (existsSync(desktopZip)) {
   rmSync(desktopZip, { force: true });
 }
 
-run(
-  `ditto -c -k --sequesterRsrc --keepParent ${JSON.stringify(bundleApp)} ${JSON.stringify(webZipPath)}`
-);
+createDistributionZip(bundleApp, webZipPath);
 
 try {
-  run(
-    `ditto -c -k --sequesterRsrc --keepParent ${JSON.stringify(bundleApp)} ${JSON.stringify(desktopZip)}`
-  );
+  createDistributionZip(bundleApp, desktopZip);
 } catch (error) {
   console.warn(
     `[export] Skipped Desktop zip: ${error instanceof Error ? error.message : error}`

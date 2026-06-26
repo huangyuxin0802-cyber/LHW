@@ -1,4 +1,4 @@
-import { Cpu, Download, Ghost } from "lucide-react";
+import { AlertTriangle, Cpu, Download, Ghost, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 const DOWNLOAD_URL = "/downloads/ghost-mac.zip";
@@ -70,21 +70,70 @@ export default function DownloadPage() {
           {absoluteDownload}
         </p>
 
-        <section className="mt-10 space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <section className="mt-8 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+            <div>
+              <h2 className="text-[16px] font-bold text-amber-100">
+                打不开？提示无法验证 / malware？
+              </h2>
+              <p className="mt-2 text-[14px] font-semibold leading-relaxed text-amber-50/95">
+                这是 macOS 对未签名应用的正常拦截，不代表有病毒。小幽灵目前没有
+                Apple 付费开发者签名，从网上下载后需要手动允许一次。
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            <div className="rounded-xl border border-amber-300/25 bg-black/25 p-4">
+              <p className="text-[14px] font-bold text-white">
+                方法一（最简单）：右键打开
+              </p>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-[14px] font-medium text-amber-50">
+                <li>在 Finder 找到「小幽灵.app」</li>
+                <li>
+                  <span className="font-bold text-white">Control + 点击</span>
+                  或右键 → 选「打开」
+                </li>
+                <li>弹窗里再点一次「打开」</li>
+              </ol>
+            </div>
+
+            <div className="rounded-xl border border-amber-300/25 bg-black/25 p-4">
+              <p className="text-[14px] font-bold text-white">方法二：终端命令</p>
+              <p className="mt-2 text-[13px] font-medium text-amber-100/90">
+                已拖到「应用程序」后，复制下面整行到「终端」回车：
+              </p>
+              <code className="mt-2 block overflow-x-auto rounded-lg bg-zinc-950 px-3 py-2.5 text-[13px] font-semibold text-emerald-300">
+                xattr -cr &quot;/Applications/小幽灵.app&quot; &amp;&amp; open
+                &quot;/Applications/小幽灵.app&quot;
+              </code>
+              <p className="mt-2 text-[12px] font-medium text-amber-200/80">
+                若还在「下载」里：把路径改成 ~/Downloads/小幽灵.app
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-300/25 bg-black/25 p-4">
+              <p className="text-[14px] font-bold text-white">方法三：系统设置</p>
+              <p className="mt-2 text-[14px] font-medium text-amber-50">
+                先双击尝试打开一次 →「系统设置 → 隐私与安全性」→ 向下找到
+                <span className="font-bold text-white">仍要打开</span>
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-4 flex items-center gap-2 text-[13px] font-medium text-amber-100/90">
+            <ShieldCheck className="h-4 w-4 text-emerald-300" />
+            应用源码可自查，仅连接 Groq 聊天，不读取系统敏感文件。
+          </p>
+        </section>
+
+        <section className="mt-8 space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
           <h2 className="text-[17px] font-bold text-white">安装步骤</h2>
           <ol className="list-decimal space-y-3 pl-5 text-[15px] font-medium leading-relaxed text-zinc-100">
-            <li>下载 zip 并解压，得到「小幽灵.app」</li>
+            <li>下载 zip 并解压，得到「小幽灵.app」和「安装说明.txt」</li>
             <li>把 app 拖到「应用程序」文件夹</li>
-            <li>
-              首次打开若提示无法验证，去「系统设置 → 隐私与安全性」点
-              <span className="font-bold text-white">仍要打开</span>
-            </li>
-            <li>
-              或在终端运行：
-              <code className="mt-1 block rounded-lg bg-black/40 px-3 py-2 text-[13px] font-semibold text-violet-200">
-                xattr -cr /Applications/小幽灵.app
-              </code>
-            </li>
+            <li>按上方黄色提示完成首次打开</li>
           </ol>
           <p className="text-[14px] font-medium leading-relaxed text-zinc-300">
             已安装的用户可在 app 内
