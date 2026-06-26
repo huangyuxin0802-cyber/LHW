@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "小幽灵",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "identifier": "com.yuxin.desktop-pet",
   "build": {
     "frontendDist": "../out",

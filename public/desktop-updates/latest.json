@@ -1,10 +1,14 @@
 {
-  "version": "0.1.5",
-  "notes": "小幽灵 v0.1.5",
-  "pub_date": "2026-06-26T10:51:00.000Z",
+  "version": "0.1.6",
+  "notes": "小幽灵 v0.1.6 — 支持 Apple Silicon 与 Intel Mac",
+  "pub_date": "2026-06-26T11:08:00.000Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZ0tVTkFUNHZ1QnFlSTRpSW5uM3RmeEw0ZUxnaG50UEF0VTBTZGE0VUU1YzNNcTdOMkNpWHhKN3BmeC95dVFhOENqN1IwRjNLR0Z1d1I5ZC9pTkY1SXA0T2hVYklZSHdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDcxMDY2CWZpbGU65bCP5bm954G1LmFwcC50YXIuZ3oKb1lWd2RhNU9mYmhwTDBrTVdidCtDbzlaeVNsbFQ0MTdMSmxtaVJEdGJCTDFMcmxDZkJpeXVXak1QRzJaL1U2ODVmV3VKakNOaEhYbCsvbXN4QUdDQ1E9PQo=",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZ0tVTkFUNHZ1QmwweXBWZE5QTnBkRWovNzJJOE4wN2RIdWlaSnNaYXlHdm1udnFiUDNZcStGeXFpVVNSaVptR3hyVk5ucmozUWNveWU2SFJSK3VHeEp5Wk8zUTIvQmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDcyMDg1CWZpbGU65bCP5bm954G1LmFwcC50YXIuZ3oKNFRrbVhoUVRmN0xZd1JNYXNmWkRqTjVpbFdLT1lMNjl5Nm1KUS82UXR4UU9naGhFcHQ2Y2FkRmlKWmtWUnZ6cmFNYnlmSmJlU2llVzZrbWd4bWt1QVE9PQo=",
+      "url": "https://lhw-six.vercel.app/desktop-updates/desktop-pet.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSZ0tVTkFUNHZ1QmwweXBWZE5QTnBkRWovNzJJOE4wN2RIdWlaSnNaYXlHdm1udnFiUDNZcStGeXFpVVNSaVptR3hyVk5ucmozUWNveWU2SFJSK3VHeEp5Wk8zUTIvQmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDcyMDg1CWZpbGU65bCP5bm954G1LmFwcC50YXIuZ3oKNFRrbVhoUVRmN0xZd1JNYXNmWkRqTjVpbFdLT1lMNjl5Nm1KUS82UXR4UU9naGhFcHQ2Y2FkRmlKWmtWUnZ6cmFNYnlmSmJlU2llVzZrbWd4bWt1QVE9PQo=",
       "url": "https://lhw-six.vercel.app/desktop-updates/desktop-pet.app.tar.gz"
     }
   }

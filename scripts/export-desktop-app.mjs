@@ -14,7 +14,10 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appName = "小幽灵";
-const bundleDir = join(root, "src-tauri/target/release/bundle/macos");
+const bundleDir = join(
+  root,
+  "src-tauri/target/universal-apple-darwin/release/bundle/macos"
+);
 const bundleApp = join(bundleDir, `${appName}.app`);
 const desktopApp = join(homedir(), "Desktop", `${appName}.app`);
 const desktopZip = join(homedir(), "Desktop", `${appName}-mac.zip`);
@@ -112,21 +115,34 @@ function findUpdaterArtifacts() {
   };
 }
 
+function ensureUniversalMacTarget() {
+  const installed = execSync("rustup target list --installed", {
+    encoding: "utf8",
+  });
+  if (!installed.includes("x86_64-apple-darwin")) {
+    console.log("[export] Installing x86_64-apple-darwin for universal Mac build…");
+    run("rustup target add x86_64-apple-darwin");
+  }
+}
+
 function publishUpdaterManifest(version) {
   const { archivePath, signaturePath } = findUpdaterArtifacts();
   const signature = readFileSync(signaturePath, "utf8").trim();
 
   copyFileSync(archivePath, updateBundlePath);
 
+  const platformEntry = {
+    signature,
+    url: `${siteUrl}/desktop-updates/${updateBundleName}`,
+  };
+
   const manifest = {
     version,
-    notes: `小幽灵 v${version}`,
+    notes: `小幽灵 v${version} — 支持 Apple Silicon 与 Intel Mac`,
     pub_date: new Date().toISOString(),
     platforms: {
-      "darwin-aarch64": {
-        signature,
-        url: `${siteUrl}/desktop-updates/${updateBundleName}`,
-      },
+      "darwin-aarch64": platformEntry,
+      "darwin-x86_64": platformEntry,
     },
   };
 
@@ -146,7 +162,9 @@ console.log(`[export] Bumping version ${currentVersion} -> ${nextVersion}`);
 syncVersionFiles(nextVersion);
 run("node scripts/sync-app-version.mjs");
 
-run("npm run tauri:build:only", {
+ensureUniversalMacTarget();
+
+run("npx tauri build --bundles app --target universal-apple-darwin", {
   CARGO_TARGET_DIR: join(root, "src-tauri/target"),
   TAURI_SIGNING_PRIVATE_KEY: readFileSync(privateKeyPath, "utf8"),
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
@@ -159,28 +177,35 @@ if (!existsSync(bundleApp)) {
 
 publishUpdaterManifest(nextVersion);
 
-if (existsSync(desktopApp)) {
-  try {
+try {
+  if (existsSync(desktopApp)) {
     rmSync(desktopApp, { recursive: true, force: true });
-  } catch (error) {
-    console.warn(
-      `[export] Could not remove old Desktop app (close it first if open): ${error instanceof Error ? error.message : error}`
-    );
   }
+  run(`ditto ${JSON.stringify(bundleApp)} ${JSON.stringify(desktopApp)}`);
+  clearQuarantine(desktopApp);
+} catch (error) {
+  console.warn(
+    `[export] Skipped Desktop copy: ${error instanceof Error ? error.message : error}`
+  );
 }
-
-run(`ditto ${JSON.stringify(bundleApp)} ${JSON.stringify(desktopApp)}`);
-clearQuarantine(desktopApp);
 
 if (existsSync(desktopZip)) {
   rmSync(desktopZip, { force: true });
 }
 
 run(
-  `ditto -c -k --sequesterRsrc --keepParent ${JSON.stringify(desktopApp)} ${JSON.stringify(desktopZip)}`
+  `ditto -c -k --sequesterRsrc --keepParent ${JSON.stringify(bundleApp)} ${JSON.stringify(webZipPath)}`
 );
 
-copyFileSync(desktopZip, webZipPath);
+try {
+  run(
+    `ditto -c -k --sequesterRsrc --keepParent ${JSON.stringify(bundleApp)} ${JSON.stringify(desktopZip)}`
+  );
+} catch (error) {
+  console.warn(
+    `[export] Skipped Desktop zip: ${error instanceof Error ? error.message : error}`
+  );
+}
 
 writeFileSync(
   join(homedir(), "Desktop", `${appName}-version.json`),
